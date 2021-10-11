@@ -26,8 +26,8 @@ aleatoire <- function(df,n){
   l<-slice(df,a)
   return(l)
 }
-selectioninf<-aleatoire(datainf,8)
-selectionsup<-aleatoire(datasup,8)
+selectioninf<-aleatoire(datainf,10)
+selectionsup<-aleatoire(datasup,10)
 selection<-full_join(selectionsup,selectioninf)
 create_matrice<- function(df){
   v1<-select(df,Geno) %>% 
@@ -46,10 +46,8 @@ choix <- function(M){
   for (i in 1:nrow(M)){
     l[length(l)+1]<-M[i,i]
   }
-  view(l)
-  for (a in 0:3){
+  for (a in 0:4){
     for (colonne in (2+4*a):(4*(a+1))){
-      print(colonne)
       for (ligne in (1+4*a):(4*(a+1)-1)){
         if (colonne-ligne>=1){
           l[length(l)+1]<-M[ligne,colonne]
@@ -60,7 +58,29 @@ choix <- function(M){
   return (l)
 }
 liste <- choix(matriceentière)
-
+courbes<-function(n){
+  l<-c()
+  for (i in 1:50){
+    l[length(l)+1]<-i*(n+2)/2
+  } 
+  l<-as.tibble(l)
+  return (l)
+}
+c2<-courbes(2)
+c3<-courbes(3)
+c4<-courbes(4)
+c5<-courbes(5)
+ggplot(c2,aes(x=1:50,y=value))+
+  geom_line(aes(y=value))+
+  geom_line(aes(y=c3$value))+
+  geom_line(aes(y=c4$value))+
+  geom_line(aes(y=c5$value))
+nb_pots<-function(n,x){
+  z<-3*(n+2)*x
+  return(z)
+}
+nb_pots(3,25)
+nb_pots(4,20)
 ?strsplit
 ?contains
 ?label_value
