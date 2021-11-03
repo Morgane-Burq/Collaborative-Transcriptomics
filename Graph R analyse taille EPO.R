@@ -173,20 +173,21 @@ critères_autres<-function(){
 }
 
 création_matrice_dim3<-function(){
-  M<-array(dim=c(7,270,21))
-  M<-provideDimnames(M , sep = "_", base = list('critère',"couple",'jour'))
-  colnames(M)<-Wtbliste
-  rownames(M)<-c("Longueur coléoptile","Longueur 1ère feuille","Largueur 1ère feuille","Longueur 2ème feuille","Largueur 2ème feuille","Longueur 3ème feuille","Largueur 3ème feuille")
+  M<-array(dim=c(270,7,21))
+  M<-provideDimnames(M , sep = "_", base = list('couple',"critère",'jour'))
+  rownames(M)<-Wtbliste
+  colnames(M)<-c("Longueur coléoptile","Longueur 1ère feuille","Largueur 1ère feuille","Longueur 2ème feuille","Largueur 2ème feuille","Longueur 3ème feuille","Largueur 3ème feuille")
   return(M)
 }
 
 
 M<-création_matrice_dim3()
 colnames(M)
+view(M)
 création_excel <- function(M){
   l<-dimnames(M)[[3]]
   for (i in 1:21){
-    write.xlsx2(M[,,i],file="xlsxtest3.xlsx",append=TRUE,sheetName = l[i])
+    write.xlsx2(M[,,i],file="xlsxtest4.xlsx",append=TRUE,sheetName = l[i])
   }
 }
 création_excel(M)
