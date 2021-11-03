@@ -1,7 +1,7 @@
 library(tidyverse)
 library(xlsx)
 set.seed(66)
-liste<-read.csv("C:/Users/salas/Documents/GitHub/Collaborative-Transcriptomics/liste_génotypes.csv")
+liste<-read.csv("C:/Users/Nicolas/Documents/GitHub/Collaborative-Transcriptomics/liste_génotypes.csv")
 liste<-as.tibble(liste[,2])
 colnames(liste)<-c("Geno")
 #data<-read.csv("C:\\Users\\salas\\Desktop\\supagro\\JRL-AT\\R projet neighbors\\SAS_BLUE.P.csv") %>% 
@@ -123,8 +123,8 @@ nb_pots(4,15)
 Wt_add <- function(l){
   l2<-l
   for (i in (1:length(l))){
-    l[i]<-paste(l[i],"Wt+")
-    l2[i]<-paste(l2[i],"Wt-")
+    l[i]<-paste(l[i],"WT")
+    l2[i]<-paste(l2[i],"wt")
   }
   l3<-append(l,l2)
   return(l3)
@@ -182,10 +182,11 @@ création_matrice_dim3<-function(){
 
 
 M<-création_matrice_dim3()
+colnames(M)
 création_excel <- function(M){
   l<-dimnames(M)[[3]]
   for (i in 1:21){
-    write.xlsx(M[,,i],file="xlsxtest2.xlsx",append=TRUE,sheetName = l[i])
+    write.xlsx2(M[,,i],file="xlsxtest3.xlsx",append=TRUE,sheetName = l[i])
   }
 }
 création_excel(M)
