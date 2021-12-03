@@ -195,14 +195,33 @@ shapiro.test(lm4_6$residuals)
 bartlett.test(as.numeric(vitesse_largeur_f1) ~ Monoculture_Couple ,data= data_final)
 summary(lm4_6)
 anova(lm4_6)
+###Pour le poids graine (remove les deux NA)
+data_wo_NApoids<-data_final %>% 
+  filter(is.na(poids_graine)==FALSE)
+lm_geno_wo_NApoids<-lm(as.numeric(Longueur_feuille_2)~plante_genotype,data=data_wo_NApoids)
+lm_geno_poids<-lm(as.numeric(Longueur_feuille_2)~plante_genotype+poids_graine,data=data_wo_NApoids)
+lm_geno_poids_Position<-lm(as.numeric(Longueur_feuille_2)~plante_genotype+poids_graine+Position,data=data_wo_NApoids)
+lm_geno_poids_Position_contrainte<-lm(as.numeric(Longueur_feuille_2)~plante_genotype+poids_graine+Position+Condition_hydrique,data=data_wo_NApoids)
 
+anova(lm_geno_wo_NApoids,lm_geno_poids,lm_geno_poids_Position,lm_geno_poids_Position_contrainte)
+anova(lm_geno_wo_NApoids,lm_geno_poids_Position_contrainte)
+
+###Sur tout le dataset
+
+lm_nothing<-lm(as.numeric(Longueur_feuille_2)~1,data=data_final)
+lm_geno<-lm(as.numeric(Longueur_feuille_2)~plante_genotype,data=data_final)
+lm_geno_position<-lm(as.numeric(Longueur_feuille_2)~plante_genotype+Position,data=data_final)
+lm_geno_contrainte_hydrique<-lm(as.numeric(Longueur_feuille_2)~plante_genotype+Condition_hydrique,data=data_final)
+lm_geno_position_contrainte_hydrique<-lm(as.numeric(Longueur_feuille_2)~plante_genotype+Condition_hydrique+Position,data=data_final)
+
+anova(lm_geno,lm_geno_position,lm_geno_contrainte_hydrique,lm_geno_position_contrainte_hydrique)
 ### Modèle mixte
 
 mod_mixte_1 <- lmer(Longueur_feuille_1 ~poids_graine + Position + (1|plante_genotype) ,data= data)
 summary(mod_mixte_1)
 Anova(mod_mixte_1)
 
-test_position<-lm(taille_coleotile_feuille_1 ~ Bloc + Colonne + Ligne ,data= data)
+test_position<-lm(Longueur_feuille_2 ~ Bloc + Colonne + Ligne ,data= data_final)
 summary(test_position)
 anova(test_position)
 
@@ -215,6 +234,18 @@ anova(test)
 ?arrange
 ggplot(data=data_spd,aes(x=Date_mesure,y=taille_coleotile_feuille_1,group=Couple))+
   geom_point()
+?anova
+data<-data_final %>% 
+  select(poids_graine,plante_genotype) %>% 
+  group_by(plante_genotype) %>% 
+  filter(is.na(poids_graine)==FALSE) %>% 
+  summarise(Moyenne_poids_graine=mean(poids_graine)) %>% 
+  arrange(Moyenne_poids_graine)
 
-
-
+data$plante_genotype<-fct_relevel(data$plante_genotype,c("118","235","114","265","130","89","74","348","165","482","395","412","329","131","376"))
+  
+ggplot(data=data,aes(x=plante_genotype,y=Moyenne_poids_graine,fill=plante_genotype))+
+  geom_bar(stat = "identity")+
+  theme_bw()
+?geom_bar
+?stat_count
