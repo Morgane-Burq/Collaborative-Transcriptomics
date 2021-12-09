@@ -10,7 +10,6 @@ data_final<-as_tibble(read.csv("Mesures_neighbors_final.csv",header=TRUE,sep=","
 names(data_final)
 data_dates<-read.csv("Mesures_neighbors_dates.csv",header=TRUE,sep=",")
 liste<-which(!is.na(data_dates$date_ligule_1)&(is.na(data_dates$date_ligule_2)))
-data_dates$date_ligule_2[liste]<-"25/11/2021"
 data_dates$date_ligule_2=as.numeric(substr(data_dates$date_ligule_2,1,2))
 data_final<-data_final %>% 
   mutate(plante_genotype=as.character(plante_genotype),
@@ -20,20 +19,23 @@ data_final<-data_final %>%
          vitesse_largeur_f1=as.numeric(vitesse_largeur_f1),
          poids_graine=as.numeric(poids_graine),
          vitesse_coleoptile_feuille_1=as.numeric(vitesse_coleoptile_feuille_1),
-         vitesse_coleoptile_feuille_2=as.numeric(vitesse_coleoptile_feuille_2)) %>% 
+         vitesse_coleoptile_feuille_2=as.numeric(vitesse_coleoptile_feuille_2),
+         Bloc=as.factor(Bloc),
+         Colonne=as.factor(Colonne),
+         Ligne=as.factor(Ligne)) %>% 
   filter(Longueur_feuille_2>50)
-
-data_final<-data_final %>% 
-  mutate(plante_genotype=as.character(plante_genotype),
-         Nombre_de_feuille_ligulÃ.e=as.numeric(Nombre_de_feuille_ligulÃ.e),
-         Longueur_feuille_2=as.numeric(Longueur_feuille_2),
-         vitesse_longueur_f1=as.numeric(vitesse_longueur_f1),
-         vitesse_largeur_f1=as.numeric(vitesse_largeur_f1),
-         poids_graine=as.numeric(poids_graine),
-         vitesse_coleoptile_feuille_1=as.numeric(vitesse_coleoptile_feuille_1),
-         vitesse_coleoptile_feuille_2=as.numeric(vitesse_coleoptile_feuille_2)) %>% 
-  filter(Longueur_feuille_2>50)
-
+data_dates<-data_dates[-liste3,] %>% 
+  mutate(poids_graine=as.numeric(poids_graine),
+         plante_genotype=as.factor(plante_genotype),
+         Bloc=as.factor(Bloc),
+         Colonne=as.factor(Colonne),
+         Ligne=as.factor(Ligne),
+         Condition_hydrique=as.factor(Condition_hydrique),
+         Monoculture_Couple=as.factor(Monoculture_Couple),
+         date_ligule_2=as.numeric(substr(date_ligule_2,1,2))) %>% 
+  filter(!is.na(date_ligule_2)) 
+liste2<-which(is.na(data_final$Longueur_feuille_2))
+liste3<-which(data_final$Couple%in%data_final$Couple[liste2])
 #Graphs généraux
 data<-data_final %>% 
   select(poids_graine,plante_genotype) %>% 
@@ -52,6 +54,7 @@ data$plante_genotype<-fct_relevel(data$plante_genotype,c("118","235","114","265"
 ggplot(data=data,aes(x=plante_genotype,y=Moyenne_poids_graine,fill=plante_genotype))+
   geom_bar(stat = "identity",show.legend = FALSE)+
   theme_cowplot()
+
 hist(data_dates$date_ligule_2)
 
 #vitesse croissance longueur feuille 1
@@ -264,17 +267,21 @@ data_dates$Condition_hydrique<-as.factor(data_dates$Condition_hydrique)
 data_dates$Monoculture_Couple<-as.factor(data_dates$Monoculture_Couple)
 
 lm_date_q1_h0<-lm(date_ligule_2~poids_graine,data=data_dates)
-lm_date_q1_h1<-lm(date_ligule_2~Condition_hydrique+poids_graine + plante_genotype+Bloc
-                  +Bloc:Ligne+Bloc:Colonne
-                  +plante_genotype:Condition_hydrique
+lm_date_q1_h1<-lm(Biomasse_seche~Bloc+Bloc:Ligne+Bloc:Colonne+Condition_hydrique+
+                    poids_graine + plante_genotype
+                  + plante_genotype:Condition_hydrique
                   +Monoculture_Couple
-                  +plante_genotype:Monoculture_Couple,data=data_dates)
+                  +plante_genotype:Monoculture_Couple
+                  +plante_genotype:Monoculture_Couple:Condition_hydrique,data=data_final)
+
+lm_date_q1_h12<-lm(Biomasse_seche~Bloc+Bloc:Ligne+Bloc:Colonne+Condition_hydrique+
+                    poids_graine ,data=data_final)
 plot(lm_date_q1_h0)
 summary(lm_date_q1_h0)
 anova(lm_date_q1_h0)
 plot(lm_date_q1_h1)
 summary(lm_date_q1_h1)
-anova(lm_date_q1_h1)
+anova(lm_date_q1_h12)
 anova(lm_date_q1_h0,lm_date_q1_h1)
 
 boxplot(data_dates$date_ligule_2~data_dates$Monoculture_Couple:data_dates$plante_genotype)

@@ -210,5 +210,22 @@ création_excel(M)
 ?write_csv
 ?provideDimnames
 glimpse(data)
-write.csv(alea_rht,"liste_génotypes.csv")
+write.csv(binded,"liste_génotypes.csv")
+
+liste_genotypes<-read.csv("\\Users\\salas\\Documents\\GitHub\\Collaborative-Transcriptomics\\liste_génotypes.csv")
+merge<-SG_tibble %>% select(rowname,"AX-89431564")
+colnames(merge)<-c("Geno","AX-89431564")
+binded<-merge(merge,liste_genotypes,by="Geno")
+for (elt in (1:nrow(binded))){
+  if (binded[elt,2]==2){
+    binded[elt,2]="RHT"
+  }
+  else{
+    binded[elt,2]="rht"
+  }
+}
+binded<-binded %>% select(c(1,2))
+
+
+getwd()
 
