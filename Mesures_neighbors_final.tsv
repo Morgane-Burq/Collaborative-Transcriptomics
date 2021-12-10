@@ -1,4 +1,4 @@
-Couple	Position	Position_pots	Monoculture_Couple	Condition_hydrique	RHT_rht	Bloc	Colonne	Ligne	plante_genotype	poids_graine	Longueur_feuille_2	Largeur_feuille_2	Nombre_de_feuille_ligulée	thallee	Surface_feuille_2	Biomasse_seche	vitesse_coleoptile_feuille_1	vitesse_coleoptile_feuille_2	vitesse_longueur_f1	vitesse_largeur_f1
+Couple	Position	Position_pots	Monoculture_Couple	Condition_hydrique	RHT_rht	Bloc	Colonne	Ligne	plante_genotype	poids_graine	Longueur_feuille_2	Largeur_feuille_2	Nombre_de_feuille_ligulee	thallee	Surface_feuille_2	Biomasse_seche	vitesse_coleoptile_feuille_1	vitesse_coleoptile_feuille_2	vitesse_longueur_f1	vitesse_largeur_f1
 EL4X_265.EL4X_265 wt b1	B1 - 1 - 1	gauche	Monoculture	Contrainte hydrique		1	1	1	265	40	209	4	3	0		70	28.5	38.5	0	0.5
 EL4X_265.EL4X_265 wt b1	B1 - 1 - 1	droite	Monoculture	Contrainte hydrique		1	1	1	265	48	224	3	3	0		71	26	NA	-2	0
 EL4X_118.EL4X_348 wt b1	B1 - 1 - 2	gauche	Couple	Contrainte hydrique		1	1	2	118	26	207	4	2	0		55	29.25	68	60	2
@@ -448,7 +448,7 @@ EL4X_395.EL4X_395 wt b5	B5 - 5 - 7	droite	Monoculture	Contrainte hydrique		5	5	7
 EL4X_329.EL4X_235 wt b5	B5 - 5 - 8	gauche	Couple	Contrainte hydrique		5	5	8	329	55	189	4	3	0		81	31	70.5	49.5	2
 EL4X_329.EL4X_235 wt b5	B5 - 5 - 8	droite	Couple	Contrainte hydrique		5	5	8	235	47	164	4	2	0		48	18.75	49.5	37.5	1.5
 EL4X_265.EL4X_348 wt b5	B5 - 5 - 9	gauche	Couple	Contrainte hydrique		5	5	9	265	41	233	4	2	0		74	26	30	-3	0.5
-EL4X_265.EL4X_348 wt b5	B5 - 5 - 9	droite	Couple	Contrainte hydrique		6	5	9	348	42	191	4	3	0		76	21	28.5	-1	0
+EL4X_265.EL4X_348 wt b5	B5 - 5 - 9	droite	Couple	Contrainte hydrique		5	5	9	348	42	191	4	3	0		76	21	28.5	-1	0
 EL4X_89.EL4X_265 WT b6	B6 - 1 - 1	gauche	Couple	Bien irrigue		6	1	1	89	43	205	5	3	0		67	34.5	58.5	65.5	2
 EL4X_89.EL4X_265 WT b6	B6 - 1 - 1	droite	Couple	Bien irrigue		6	1	1	265	41	188	4	3	0		83	33	33	2	0
 EL4X_329.EL4X_376 WT b6	B6 - 1 - 2	gauche	Couple	Bien irrigue		6	1	2	329	51	196	5	3	0		104	35	97	52	2.5
