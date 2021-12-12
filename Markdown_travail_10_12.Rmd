@@ -133,16 +133,21 @@ anova(mod6)
 #Plot biomasse
 plot_biomasse<-ggplot(data=data,aes(Biomasse_seche))+
   geom_bar()+
-  ggtitle("Biomasse sèche")+
+  xlab("Dry Biomass")+
+  ylab("Count")+
   theme_cowplot()
+
 plot_biomasse
 
 #Plot biomasse / bloc
 
 plot_biomasse_bloc<-ggplot(data=data,aes(Bloc,Biomasse_seche,fill=Bloc))+
   geom_boxplot(outlier.shape = NA)+ 
-  geom_jitter(position=position_jitter(0))+
-  ggtitle("Biomasse sèche en fonction des blocs")+
+  geom_jitter(position=position_jitter(0),size=0.7,alpha=0.5)+
+  geom_hline(yintercept = 74.45161,col="red")+
+  xlab("Block")+
+  ylab("Dry Biomass")+
+  labs(fill="Block")+
   theme_cowplot()
 plot_biomasse_bloc
 
@@ -150,7 +155,9 @@ plot_biomasse_bloc
 
 plot_biomasse_ligne_smooth<-ggplot(data=data,aes(Ligne,Biomasse_seche,fill=Ligne))+
   geom_smooth()+
-  ggtitle("Biomasse sèche en fonction des Lignes (continues)")+
+  xlab("Line (numeric)")+
+  ylab("Dry Biomass")+
+  labs(fill="Line")+
   theme_cowplot()
 plot_biomasse_ligne_smooth
 
@@ -158,8 +165,11 @@ plot_biomasse_ligne_smooth
 
 plot_biomasse_ligne_boxplot<-ggplot(data=data,aes(as.factor(Ligne),Biomasse_seche,fill=Ligne))+
   geom_boxplot(outlier.shape = NA)+ 
-  geom_jitter(position=position_jitter(0))+
-  ggtitle("Biomasse sèche en fonction des lignes (facteurs)")+
+  geom_jitter(position=position_jitter(0),size=0.7,alpha=0.5)+
+  geom_hline(yintercept = 74.45161,col="red")+
+  xlab("Line (factor)")+
+  ylab("Dry Biomass")+
+  labs(fill="Line")+
   theme_cowplot()
 plot_biomasse_ligne_boxplot
 
@@ -167,8 +177,11 @@ plot_biomasse_ligne_boxplot
 
 plot_biomasse_colonne_boxplot<-ggplot(data=data,aes(as.factor(Colonne),Biomasse_seche,fill=Colonne))+
   geom_boxplot(outlier.shape = NA)+ 
-  geom_jitter(position=position_jitter(0))+
-  ggtitle("Biomasse sèche en fonction des colonnes (facteurs)")+
+  geom_jitter(position=position_jitter(0),size=0.7,alpha=0.5)+
+  geom_hline(yintercept = 74.45161,col="red")+
+  xlab("Column (factor)")+
+  ylab("Dry Biomass")+
+  labs(fill="Column")+
   theme_cowplot()
 plot_biomasse_colonne_boxplot
 
@@ -176,7 +189,9 @@ plot_biomasse_colonne_boxplot
 
 plot_biomasse_colonne_smooth<-ggplot(data=data,aes(Colonne,Biomasse_seche,fill=Colonne))+
   geom_smooth()+
-  ggtitle("Biomasse sèche en fonction des colonnes (continues)")+
+  xlab("Column (numeric)")+
+  ylab("Dry Biomass")+
+  labs(fill="Column")+
   theme_cowplot()
 plot_biomasse_colonne_smooth
 
@@ -184,8 +199,12 @@ plot_biomasse_colonne_smooth
 
 plot_biomasse_Condition<-ggplot(data=data,aes(Condition_hydrique,Biomasse_seche,fill=Condition_hydrique))+
   geom_boxplot(outlier.shape = NA)+ 
-  geom_jitter(position=position_jitter(0))+
-  ggtitle("Biomasse sèche en fonction de la condition hydrique")+
+  geom_jitter(position=position_jitter(0),size=0.7,alpha=0.5)+
+  geom_hline(yintercept = 74.45161,col="red")+
+  xlab("Hydric Condition")+
+  ylab("Dry Biomass")+
+  labs(fill="Hydric Condition")+
+  scale_fill_discrete(labels=c("Well watered","Hydric stressed"))+
   theme_cowplot()
 plot_biomasse_Condition
 
@@ -193,8 +212,11 @@ plot_biomasse_Condition
 
 plot_biomasse_Monoculture_Couple<-ggplot(data=data,aes(Monoculture_Couple,Biomasse_seche,fill=Monoculture_Couple))+
   geom_boxplot(outlier.shape = NA)+ 
-  geom_jitter(position=position_jitter(0))+
-  ggtitle("Biomasse sèche en fonction des conditions de culture")+
+  geom_jitter(position=position_jitter(0),size=0.7,alpha=0.5)+
+  geom_hline(yintercept = 74.45161,col="red")+
+  xlab("Cultural Condition")+
+  ylab("Dry Biomass")+
+  labs(fill="Cultural Condition")+
   theme_cowplot()
 plot_biomasse_Monoculture_Couple
 
@@ -202,8 +224,11 @@ plot_biomasse_Monoculture_Couple
 
 plot_biomasse_RHT_voisin<-ggplot(data=data,aes(RHT_voisin,Biomasse_seche,fill=RHT_voisin))+
   geom_boxplot(outlier.shape = NA)+ 
-  geom_jitter(position=position_jitter(0))+
-  ggtitle("Biomasse sèche en fonction du marqueur RHT du voisin")+
+  geom_jitter(position=position_jitter(0),size=0.7,alpha=0.5)+
+  geom_hline(yintercept = 74.45161,col="red")+
+  xlab("Neighbors RHT marker")+
+  ylab("Dry Biomass")+
+  labs(fill="Neighbors RHT marker")+
   theme_cowplot()
 plot_biomasse_RHT_voisin
 
@@ -211,8 +236,11 @@ plot_biomasse_RHT_voisin
 
 plot_biomasse_voisin<-ggplot(data=data,aes(voisin,Biomasse_seche,fill=voisin))+
   geom_boxplot(outlier.shape = NA)+ 
-  geom_jitter(position=position_jitter(0))+
-  ggtitle("Biomasse sèche en fonction du génotype du voisin")+
+  geom_jitter(position=position_jitter(0),size=0.7,alpha=0.5)+
+  geom_hline(yintercept = 74.45161,col="red")+
+  xlab("Neighbors genotype")+
+  ylab("Dry Biomass")+
+  labs(fill="Neighbors genotype")+
   theme_cowplot()
 plot_biomasse_voisin
 
@@ -220,8 +248,11 @@ plot_biomasse_voisin
 
 plot_biomasse_RHT_rht<-ggplot(data=data,aes(RHT_rht,Biomasse_seche,fill=RHT_rht))+
   geom_boxplot(outlier.shape = NA)+ 
-  geom_jitter(position=position_jitter(0))+
-  ggtitle("Biomasse sèche en fonction du marqueur RHT du focal")+
+  geom_jitter(position=position_jitter(0),size=0.7,alpha=0.5)+
+  geom_hline(yintercept = 74.45161,col="red")+
+  xlab("RHT marker")+
+  ylab("Dry Biomass")+
+  labs(fill="RHT marker")+
   theme_cowplot()
 plot_biomasse_RHT_rht
 
@@ -229,7 +260,8 @@ plot_biomasse_RHT_rht
 
 plot_biomasse_poids_graine<-ggplot(data=data,aes(poids_graine,Biomasse_seche,fill=poids_graine))+
   geom_smooth()+
-  ggtitle("Biomasse sèche en fonction du poids de la graine")+
+  xlab("Seed weight")+
+  ylab("Dry Biomass")+
   theme_cowplot()
 plot_biomasse_poids_graine
   
@@ -238,25 +270,91 @@ mean(data$Biomasse_seche)
 plot_biomasse_genotype<-ggplot(data=data,aes(plante_genotype,Biomasse_seche,fill=plante_genotype))+
   geom_boxplot(outlier.shape = NA)+
   geom_jitter(position=position_jitter(0),size=0.7,alpha=0.5)+
-  ggtitle("Biomasse sèche en fonction du génotype de la plante")+
   geom_hline(yintercept = 74.45161,col="red")+
+  xlab("Plant genotype")+
+  ylab("Dry Biomass")+
+  labs(fill="Plant genotype")+
   theme_cowplot()
+  
 plot_biomasse_genotype
 
+
 #Plot poids_graine/Plante_genotype
-plot_poids_graine_genotype<-ggplot(data=data,aes(plante_genotype,poids_graine,fill=plante_genotype))+
+data2<-na.omit(data)
+mean(data2$poids_graine)
+plot_poids_graine_genotype<-ggplot(data=data,aes(plante_genotype,poids_graine,fill=RHT_rht))+
   geom_boxplot(outlier.shape = NA)+ 
-  geom_jitter(position=position_jitter(0))+
-  ggtitle("Poids de la graine en fonction du genotype")+
+  geom_jitter(position=position_jitter(0),size=0.7,alpha=0.5)+
+  geom_hline(yintercept = 46.60729,col="red")+
+  xlab("Plant genotype")+
+  ylab("Seed weight")+
+  labs(fill="Plant genotype")+
   theme_cowplot()
+
 plot_poids_graine_genotype
 
-model<-lm(poids_graine~plante_genotype,data=data)
-anova(model)
 ```
 
 ```{r}
 #Boxplot Biomasse_seche pour chaque genotype focal en fonction de son voisin
+
+ggplot(aes(x=Monoculture_Couple,y=Biomasse_seche,fill=Monoculture_Couple),data=data)+
+  geom_boxplot(outlier.shape = NA)+
+  geom_jitter(position=position_jitter(0),size=0.7,alpha=0.5)+
+  facet_grid(cols=vars(plante_genotype))+
+  labs(x="Cultural Conditions",y="Dry Biomass")+
+  scale_fill_manual(values=c("green","darkgreen"))+
+  theme_cowplot()+
+  theme(
+    legend.position=c(0.001,0.07),
+    legend.background = element_rect(fill="lightgrey"),
+    axis.text.x = element_blank()
+  )
+
+ggplot(aes(x=Condition_hydrique,y=Biomasse_seche,fill=Condition_hydrique,),data=data)+
+  geom_boxplot(outlier.shape = NA)+
+  geom_jitter(position=position_jitter(0),size=0.7,alpha=0.5)+
+  facet_grid(cols=vars(plante_genotype))+
+  labs(x="Hydric Conditions",y="Dry Biomass")+
+  scale_fill_manual(values=c("blue","lightblue"),labels=c("Well watered","Hydric stressed"))+
+  theme_cowplot()+
+  theme(
+    legend.position=c(0.001,0.07),
+    legend.background = element_rect(fill="lightgrey"),
+    axis.text.x = element_blank()
+  )
+
+ggplot(aes(x=RHT_voisin,y=Biomasse_seche,fill=RHT_voisin,),data=data)+
+  geom_boxplot(outlier.shape = NA)+
+  geom_jitter(position=position_jitter(0),size=0.7,alpha=0.5)+
+  facet_grid(cols=vars(plante_genotype))+
+  labs(x="Neihbors RHT Marker",y="Dry Biomass")+
+  theme_cowplot()+
+  theme(
+    legend.position=c(0.001,0.07),
+    legend.background = element_rect(fill="lightgrey"),
+    axis.text.x = element_blank()
+  )
+
+ggplot(aes(x=voisin,y=Biomasse_seche,fill=voisin),data=data)+
+  geom_boxplot(outlier.shape = NA)+
+  geom_jitter(position=position_jitter(0),size=0.7,alpha=0.5)+
+  facet_grid(rows=vars(plante_genotype),cols=vars(voisin))+
+  labs(x="Cultural Conditions",y="Dry Biomass")+
+  theme_cowplot()+
+  theme(
+    legend.position=c(0.001,0.07),
+    legend.background = element_rect(fill="lightgrey"),
+    axis.text.x = element_blank()
+  )
+
+
+
+
+
+
+
+
 
 ###74
 
@@ -265,28 +363,28 @@ data_74<-data %>%
 ggplot(aes(x=voisin,y=Biomasse_seche,fill=voisin)
        ,data=data_74)+
   geom_boxplot(outlier.shape = NA)+ 
-  geom_jitter(position=position_jitter(0))+
+  geom_jitter(position=position_jitter(0),size=0.7,alpha=0.5)+
   ggtitle("Biomasse sèche des plantes de génotype 74 en fonction du génotype du voisin")+
   theme_cowplot()
 
 ggplot(aes(x=Monoculture_Couple,y=Biomasse_seche,fill=Monoculture_Couple)
        ,data=data_74)+
   geom_boxplot(outlier.shape = NA)+ 
-  geom_jitter(position=position_jitter(0))+
+  geom_jitter(position=position_jitter(0),size=0.7,alpha=0.5)+
   ggtitle("Biomasse sèche des plantes de génotype 74 en fonction des Conditions de culture")+
   theme_cowplot()
 
 ggplot(aes(x=Condition_hydrique,y=Biomasse_seche,fill=Condition_hydrique)
        ,data=data_74)+
   geom_boxplot(outlier.shape = NA)+ 
-  geom_jitter(position=position_jitter(0))+
+  geom_jitter(position=position_jitter(0),size=0.7,alpha=0.5)+
   ggtitle("Biomasse sèche des plantes de génotype 74 en fonction des Conditions hydriques")+
   theme_cowplot()
 
 ggplot(aes(x=RHT_voisin,y=Biomasse_seche,fill=RHT_voisin)
        ,data=data_74)+
   geom_boxplot(outlier.shape = NA)+
-  geom_jitter(position=position_jitter(0))+
+  geom_jitter(position=position_jitter(0),size=0.7,alpha=0.5)+
   ggtitle("Biomasse sèche des plantes de génotype 74 en fonction du marqueur RHT du voisin")+
   theme_cowplot()
 
@@ -298,28 +396,28 @@ data_265<-data %>%
 ggplot(aes(x=voisin,y=Biomasse_seche,fill=voisin)
        ,data=data_265)+
   geom_boxplot(outlier.shape = NA)+
-  geom_jitter(position=position_jitter(0))+
+  geom_jitter(position=position_jitter(0),size=0.7,alpha=0.5)+
   ggtitle("Biomasse sèche des plantes de génotype 265 en fonction du génotype du voisin")+
   theme_cowplot()
 
 ggplot(aes(x=Monoculture_Couple,y=Biomasse_seche,fill=Monoculture_Couple)
        ,data=data_265)+
   geom_boxplot(outlier.shape = NA)+
-  geom_jitter(position=position_jitter(0))+
+  geom_jitter(position=position_jitter(0),size=0.7,alpha=0.5)+
   ggtitle("Biomasse sèche des plantes de génotype 265 en fonction des Condition de culture")+
   theme_cowplot()
 
 ggplot(aes(x=Condition_hydrique,y=Biomasse_seche,fill=Condition_hydrique)
        ,data=data_265)+
   geom_boxplot(outlier.shape = NA)+
-  geom_jitter(position=position_jitter(0))+
+  geom_jitter(position=position_jitter(0),size=0.7,alpha=0.5)+
   ggtitle("Biomasse sèche des plantes de génotype 265 en fonction des Conditions hydriques")+
   theme_cowplot()
 
 ggplot(aes(x=RHT_voisin,y=Biomasse_seche,fill=RHT_voisin)
        ,data=data_265)+
   geom_boxplot(outlier.shape = NA)+
-  geom_jitter(position=position_jitter(0))+
+  geom_jitter(position=position_jitter(0),size=0.7,alpha=0.5)+
   ggtitle("Biomasse sèche des plantes de génotype 265 en fonction du marqueur RHT du voisin")+
   theme_cowplot()
 
@@ -330,28 +428,28 @@ data_118<-data %>%
 ggplot(aes(x=voisin,y=Biomasse_seche,fill=voisin)
        ,data=data_118)+
   geom_boxplot(outlier.shape = NA)+
-  geom_jitter(position=position_jitter(0))+
+  geom_jitter(position=position_jitter(0),size=0.7,alpha=0.5)+
   ggtitle("Biomasse sèche des plantes de génotype 118 en fonction du génotype du voisin")+
   theme_cowplot()
 
 ggplot(aes(x=Monoculture_Couple,y=Biomasse_seche,fill=Monoculture_Couple)
        ,data=data_118)+
   geom_boxplot(outlier.shape = NA)+
-  geom_jitter(position=position_jitter(0))+
+  geom_jitter(position=position_jitter(0),size=0.7,alpha=0.5)+
   ggtitle("Biomasse sèche des plantes de génotype 118 en fonction des Condition de culture")+
   theme_cowplot()
 
 ggplot(aes(x=Condition_hydrique,y=Biomasse_seche,fill=Condition_hydrique)
        ,data=data_118)+
   geom_boxplot(outlier.shape = NA)+
-  geom_jitter(position=position_jitter(0))+
+  geom_jitter(position=position_jitter(0),size=0.7,alpha=0.5)+
   ggtitle("Biomasse sèche des plantes de génotype 118 en fonction des Conditions hydriques")+
   theme_cowplot()
 
 ggplot(aes(x=RHT_voisin,y=Biomasse_seche,fill=RHT_voisin)
        ,data=data_118)+
   geom_boxplot(outlier.shape = NA)+
-  geom_jitter(position=position_jitter(0))+
+  geom_jitter(position=position_jitter(0),size=0.7,alpha=0.5)+
   ggtitle("Biomasse sèche des plantes de génotype 118 en fonction du marqueur RHT du voisin")+
   theme_cowplot()
 
@@ -362,28 +460,28 @@ data_348<-data %>%
 ggplot(aes(x=voisin,y=Biomasse_seche,fill=voisin)
        ,data=data_348)+
   geom_boxplot(outlier.shape = NA)+ 
-  geom_jitter(position=position_jitter(0))+
+  geom_jitter(position=position_jitter(0),size=0.7,alpha=0.5)+
   ggtitle("Biomasse sèche des plantes de génotype 348 en fonction du génotype du voisin")+
   theme_cowplot()
 
 ggplot(aes(x=Monoculture_Couple,y=Biomasse_seche,fill=Monoculture_Couple)
        ,data=data_348)+
   geom_boxplot(outlier.shape = NA)+
-  geom_jitter(position=position_jitter(0))+
+  geom_jitter(position=position_jitter(0),size=0.7,alpha=0.5)+
   ggtitle("Biomasse sèche des plantes de génotype 348 en fonction des Condition de culture")+
   theme_cowplot()
 
 ggplot(aes(x=Condition_hydrique,y=Biomasse_seche,fill=Condition_hydrique)
        ,data=data_348)+
   geom_boxplot(outlier.shape = NA)+ 
-  geom_jitter(position=position_jitter(0))+
+  geom_jitter(position=position_jitter(0),size=0.7,alpha=0.5)+
   ggtitle("Biomasse sèche des plantes de génotype 348 en fonction des Conditions hydriques")+
   theme_cowplot()
 
 ggplot(aes(x=RHT_voisin,y=Biomasse_seche,fill=RHT_voisin)
        ,data=data_348)+
   geom_boxplot(outlier.shape = NA)+
-  geom_jitter(position=position_jitter(0))+
+  geom_jitter(position=position_jitter(0),size=0.7,alpha=0.5)+
   ggtitle("Biomasse sèche des plantes de génotype 348 en fonction du marqueur RHT du voisin")+
   theme_cowplot()
 ###412
@@ -393,28 +491,28 @@ data_412<-data %>%
 ggplot(aes(x=voisin,y=Biomasse_seche,fill=voisin)
        ,data=data_412)+
   geom_boxplot(outlier.shape = NA)+
-  geom_jitter(position=position_jitter(0))+
+  geom_jitter(position=position_jitter(0),size=0.7,alpha=0.5)+
   ggtitle("Biomasse sèche des plantes de génotype 412 en fonction du génotype du voisin")+
   theme_cowplot()
 
 ggplot(aes(x=Monoculture_Couple,y=Biomasse_seche,fill=Monoculture_Couple)
        ,data=data_412)+
   geom_boxplot(outlier.shape = NA)+
-  geom_jitter(position=position_jitter(0))+
+  geom_jitter(position=position_jitter(0),size=0.7,alpha=0.5)+
   ggtitle("Biomasse sèche des plantes de génotype 412 en fonction des Condition de culture")+
   theme_cowplot()
 
 ggplot(aes(x=Condition_hydrique,y=Biomasse_seche,fill=Condition_hydrique)
        ,data=data_412)+
   geom_boxplot(outlier.shape = NA)+ 
-  geom_jitter(position=position_jitter(0))+
+  geom_jitter(position=position_jitter(0),size=0.7,alpha=0.5)+
   ggtitle("Biomasse sèche des plantes de génotype 412 en fonction des Conditions hydriques")+
   theme_cowplot()
 
 ggplot(aes(x=RHT_voisin,y=Biomasse_seche,fill=RHT_voisin)
        ,data=data_412)+
   geom_boxplot(outlier.shape = NA)+
-  geom_jitter(position=position_jitter(0))+
+  geom_jitter(position=position_jitter(0),size=0.7,alpha=0.5)+
   ggtitle("Biomasse sèche des plantes de génotype 412 en fonction du marqueur RHT du voisin")+
   theme_cowplot()
 
@@ -425,28 +523,28 @@ data_395<-data %>%
 ggplot(aes(x=voisin,y=Biomasse_seche,fill=voisin)
        ,data=data_395)+
   geom_boxplot(outlier.shape = NA)+
-  geom_jitter(position=position_jitter(0))+
+  geom_jitter(position=position_jitter(0),size=0.7,alpha=0.5)+
   ggtitle("Biomasse sèche des plantes de génotype 395 en fonction du génotype du voisin")+
   theme_cowplot()
 
 ggplot(aes(x=Monoculture_Couple,y=Biomasse_seche,fill=Monoculture_Couple)
        ,data=data_395)+
   geom_boxplot(outlier.shape = NA)+
-  geom_jitter(position=position_jitter(0))+
+  geom_jitter(position=position_jitter(0),size=0.7,alpha=0.5)+
   ggtitle("Biomasse sèche des plantes de génotype 395 en fonction des Condition de culture")+
   theme_cowplot()
 
 ggplot(aes(x=Condition_hydrique,y=Biomasse_seche,fill=Condition_hydrique)
        ,data=data_395)+
   geom_boxplot(outlier.shape = NA)+
-  geom_jitter(position=position_jitter(0))+
+  geom_jitter(position=position_jitter(0),size=0.7,alpha=0.5)+
   ggtitle("Biomasse sèche des plantes de génotype 395 en fonction des Conditions hydriques")+
   theme_cowplot()
 
 ggplot(aes(x=RHT_voisin,y=Biomasse_seche,fill=RHT_voisin)
        ,data=data_395)+
   geom_boxplot(outlier.shape = NA)+
-  geom_jitter(position=position_jitter(0))+
+  geom_jitter(position=position_jitter(0),size=0.7,alpha=0.5)+
   ggtitle("Biomasse sèche des plantes de génotype 395 en fonction du marqueur RHT du voisin")+
   theme_cowplot()
 
@@ -457,28 +555,28 @@ data_130<-data %>%
 ggplot(aes(x=voisin,y=Biomasse_seche,fill=voisin)
        ,data=data_130)+
   geom_boxplot(outlier.shape = NA)+
-  geom_jitter(position=position_jitter(0))+
+  geom_jitter(position=position_jitter(0),size=0.7,alpha=0.5)+
   ggtitle("Biomasse sèche des plantes de génotype 130 en fonction du génotype du voisin")+
   theme_cowplot()
 
 ggplot(aes(x=Monoculture_Couple,y=Biomasse_seche,fill=Monoculture_Couple)
        ,data=data_130)+
   geom_boxplot(outlier.shape = NA)+
-  geom_jitter(position=position_jitter(0))+
+  geom_jitter(position=position_jitter(0),size=0.7,alpha=0.5)+
   ggtitle("Biomasse sèche des plantes de génotype 130 en fonction des Condition de culture")+
   theme_cowplot()
 
 ggplot(aes(x=Condition_hydrique,y=Biomasse_seche,fill=Condition_hydrique)
        ,data=data_130)+
   geom_boxplot(outlier.shape = NA)+
-  geom_jitter(position=position_jitter(0))+
+  geom_jitter(position=position_jitter(0),size=0.7,alpha=0.5)+
   ggtitle("Biomasse sèche des plantes de génotype 130 en fonction des Conditions hydriques")+
   theme_cowplot()
 
 ggplot(aes(x=RHT_voisin,y=Biomasse_seche,fill=RHT_voisin)
        ,data=data_130)+
   geom_boxplot(outlier.shape = NA)+
-  geom_jitter(position=position_jitter(0))+
+  geom_jitter(position=position_jitter(0),size=0.7,alpha=0.5)+
   ggtitle("Biomasse sèche des plantes de génotype 130 en fonction du marqueur RHT du voisin")+
   theme_cowplot()
 ###131
@@ -488,28 +586,28 @@ data_131<-data %>%
 ggplot(aes(x=voisin,y=Biomasse_seche,fill=voisin)
        ,data=data_131)+
   geom_boxplot(outlier.shape = NA)+
-  geom_jitter(position=position_jitter(0))+
+  geom_jitter(position=position_jitter(0),size=0.7,alpha=0.5)+
   ggtitle("Biomasse sèche des plantes de génotype 131 en fonction du génotype du voisin")+
   theme_cowplot()
 
 ggplot(aes(x=Monoculture_Couple,y=Biomasse_seche,fill=Monoculture_Couple)
        ,data=data_131)+
   geom_boxplot(outlier.shape = NA)+
-  geom_jitter(position=position_jitter(0))+
+  geom_jitter(position=position_jitter(0),size=0.7,alpha=0.5)+
   ggtitle("Biomasse sèche des plantes de génotype 131 en fonction des Condition de culture")+
   theme_cowplot()
 
 ggplot(aes(x=Condition_hydrique,y=Biomasse_seche,fill=Condition_hydrique)
        ,data=data_131)+
   geom_boxplot(outlier.shape = NA)+
-  geom_jitter(position=position_jitter(0))+
+  geom_jitter(position=position_jitter(0),size=0.7,alpha=0.5)+
   ggtitle("Biomasse sèche des plantes de génotype 131 en fonction des Conditions hydriques")+
   theme_cowplot()
 
 ggplot(aes(x=RHT_voisin,y=Biomasse_seche,fill=RHT_voisin)
        ,data=data_131)+
   geom_boxplot(outlier.shape = NA)+ 
-  geom_jitter(position=position_jitter(0))+
+  geom_jitter(position=position_jitter(0),size=0.7,alpha=0.5)+
   ggtitle("Biomasse sèche des plantes de génotype 131 en fonction du marqueur RHT du voisin")+
   theme_cowplot()
 
@@ -520,28 +618,28 @@ data_165<-data %>%
 ggplot(aes(x=voisin,y=Biomasse_seche,fill=voisin)
        ,data=data_165)+
   geom_boxplot(outlier.shape = NA)+
-  geom_jitter(position=position_jitter(0))+
+  geom_jitter(position=position_jitter(0),size=0.7,alpha=0.5)+
   ggtitle("Biomasse sèche des plantes de génotype 165 en fonction du génotype du voisin")+
   theme_cowplot()
 
 ggplot(aes(x=Monoculture_Couple,y=Biomasse_seche,fill=Monoculture_Couple)
        ,data=data_165)+
   geom_boxplot(outlier.shape = NA)+ 
-  geom_jitter(position=position_jitter(0))+
+  geom_jitter(position=position_jitter(0),size=0.7,alpha=0.5)+
   ggtitle("Biomasse sèche des plantes de génotype 165 en fonction des Condition de culture")+
   theme_cowplot()
 
 ggplot(aes(x=Condition_hydrique,y=Biomasse_seche,fill=Condition_hydrique)
        ,data=data_165)+
   geom_boxplot(outlier.shape = NA)+ 
-  geom_jitter(position=position_jitter(0))+
+  geom_jitter(position=position_jitter(0),size=0.7,alpha=0.5)+
   ggtitle("Biomasse sèche des plantes de génotype 165 en fonction des Conditions hydriques")+
   theme_cowplot()
 
 ggplot(aes(x=RHT_voisin,y=Biomasse_seche,fill=RHT_voisin)
        ,data=data_165)+
   geom_boxplot(outlier.shape = NA)+ 
-  geom_jitter(position=position_jitter(0))+
+  geom_jitter(position=position_jitter(0),size=0.7,alpha=0.5)+
   ggtitle("Biomasse sèche des plantes de génotype 165 en fonction du marqueur RHT du voisin")+
   theme_cowplot()
 
@@ -552,28 +650,28 @@ data_235<-data %>%
 ggplot(aes(x=voisin,y=Biomasse_seche,fill=voisin)
        ,data=data_235)+
   geom_boxplot(outlier.shape = NA)+ 
-  geom_jitter(position=position_jitter(0))+
+  geom_jitter(position=position_jitter(0),size=0.7,alpha=0.5)+
   ggtitle("Biomasse sèche des plantes de génotype 235 en fonction du génotype du voisin")+
   theme_cowplot()
 
 ggplot(aes(x=Monoculture_Couple,y=Biomasse_seche,fill=Monoculture_Couple)
        ,data=data_235)+
   geom_boxplot(outlier.shape = NA)+ 
-  geom_jitter(position=position_jitter(0))+
+  geom_jitter(position=position_jitter(0),size=0.7,alpha=0.5)+
   ggtitle("Biomasse sèche des plantes de génotype 235 en fonction des Condition de culture")+
   theme_cowplot()
 
 ggplot(aes(x=Condition_hydrique,y=Biomasse_seche,fill=Condition_hydrique)
        ,data=data_235)+
   geom_boxplot(outlier.shape = NA)+ 
-  geom_jitter(position=position_jitter(0))+
+  geom_jitter(position=position_jitter(0),size=0.7,alpha=0.5)+
   ggtitle("Biomasse sèche des plantes de génotype 235 en fonction des Conditions hydriques")+
   theme_cowplot()
 
 ggplot(aes(x=RHT_voisin,y=Biomasse_seche,fill=RHT_voisin)
        ,data=data_235)+
   geom_boxplot(outlier.shape = NA)+ 
-  geom_jitter(position=position_jitter(0))+
+  geom_jitter(position=position_jitter(0),size=0.7,alpha=0.5)+
   ggtitle("Biomasse sèche des plantes de génotype 235 en fonction du marqueur RHT du voisin")+
   theme_cowplot()
 
@@ -584,28 +682,28 @@ data_376<-data %>%
 ggplot(aes(x=voisin,y=Biomasse_seche,fill=voisin)
        ,data=data_376)+
   geom_boxplot(outlier.shape = NA)+ 
-  geom_jitter(position=position_jitter(0))+
+  geom_jitter(position=position_jitter(0),size=0.7,alpha=0.5)+
   ggtitle("Biomasse sèche des plantes de génotype 376 en fonction du génotype du voisin")+
   theme_cowplot()
 
 ggplot(aes(x=Monoculture_Couple,y=Biomasse_seche,fill=Monoculture_Couple)
        ,data=data_376)+
   geom_boxplot(outlier.shape = NA)+ 
-  geom_jitter(position=position_jitter(0))+
+  geom_jitter(position=position_jitter(0),size=0.7,alpha=0.5)+
   ggtitle("Biomasse sèche des plantes de génotype 376 en fonction des Condition de culture")+
   theme_cowplot()
 
 ggplot(aes(x=Condition_hydrique,y=Biomasse_seche,fill=Condition_hydrique)
        ,data=data_376)+
   geom_boxplot(outlier.shape = NA)+ 
-  geom_jitter(position=position_jitter(0))+
+  geom_jitter(position=position_jitter(0),size=0.7,alpha=0.5)+
   ggtitle("Biomasse sèche des plantes de génotype 376 en fonction des Conditions hydriques")+
   theme_cowplot()
 
 ggplot(aes(x=RHT_voisin,y=Biomasse_seche,fill=RHT_voisin)
        ,data=data_376)+
   geom_boxplot(outlier.shape = NA)+ 
-  geom_jitter(position=position_jitter(0))+
+  geom_jitter(position=position_jitter(0),size=0.7,alpha=0.5)+
   ggtitle("Biomasse sèche des plantes de génotype 376 en fonction du marqueur RHT du voisin")+
   theme_cowplot()
 
@@ -616,28 +714,28 @@ data_114<-data %>%
 ggplot(aes(x=voisin,y=Biomasse_seche,fill=voisin)
        ,data=data_114)+
   geom_boxplot(outlier.shape = NA)+ 
-  geom_jitter(position=position_jitter(0))+
+  geom_jitter(position=position_jitter(0),size=0.7,alpha=0.5)+
   ggtitle("Biomasse sèche des plantes de génotype 114 en fonction du génotype du voisin")+
   theme_cowplot()
 
 ggplot(aes(x=Monoculture_Couple,y=Biomasse_seche,fill=Monoculture_Couple)
        ,data=data_114)+
   geom_boxplot(outlier.shape = NA)+ 
-  geom_jitter(position=position_jitter(0))+
+  geom_jitter(position=position_jitter(0),size=0.7,alpha=0.5)+
   ggtitle("Biomasse sèche des plantes de génotype 114 en fonction des Condition de culture")+
   theme_cowplot()
 
 ggplot(aes(x=Condition_hydrique,y=Biomasse_seche,fill=Condition_hydrique)
        ,data=data_114)+
   geom_boxplot(outlier.shape = NA)+ 
-  geom_jitter(position=position_jitter(0))+
+  geom_jitter(position=position_jitter(0),size=0.7,alpha=0.5)+
   ggtitle("Biomasse sèche des plantes de génotype 114 en fonction des Conditions hydriques")+
   theme_cowplot()
 
 ggplot(aes(x=RHT_voisin,y=Biomasse_seche,fill=RHT_voisin)
        ,data=data_114)+
   geom_boxplot(outlier.shape = NA)+ 
-  geom_jitter(position=position_jitter(0))+
+  geom_jitter(position=position_jitter(0),size=0.7,alpha=0.5)+
   ggtitle("Biomasse sèche des plantes de génotype 114 en fonction du marqueur RHT du voisin")+
   theme_cowplot()
 
@@ -648,28 +746,28 @@ data_329<-data %>%
 ggplot(aes(x=voisin,y=Biomasse_seche,fill=voisin)
        ,data=data_329)+
   geom_boxplot(outlier.shape = NA)+ 
-  geom_jitter(position=position_jitter(0))+
+  geom_jitter(position=position_jitter(0),size=0.7,alpha=0.5)+
   ggtitle("Biomasse sèche des plantes de génotype 329 en fonction du génotype du voisin")+
   theme_cowplot()
 
 ggplot(aes(x=Monoculture_Couple,y=Biomasse_seche,fill=Monoculture_Couple)
        ,data=data_329)+
   geom_boxplot(outlier.shape = NA)+ 
-  geom_jitter(position=position_jitter(0))+
+  geom_jitter(position=position_jitter(0),size=0.7,alpha=0.5)+
   ggtitle("Biomasse sèche des plantes de génotype 329 en fonction des Condition de culture")+
   theme_cowplot()
 
 ggplot(aes(x=Condition_hydrique,y=Biomasse_seche,fill=Condition_hydrique)
        ,data=data_329)+
   geom_boxplot(outlier.shape = NA)+ 
-  geom_jitter(position=position_jitter(0))+
+  geom_jitter(position=position_jitter(0),size=0.7,alpha=0.5)+
   ggtitle("Biomasse sèche des plantes de génotype 329 en fonction des Conditions hydriques")+
   theme_cowplot()
 
 ggplot(aes(x=RHT_voisin,y=Biomasse_seche,fill=RHT_voisin)
        ,data=data_329)+
   geom_boxplot(outlier.shape = NA)+ 
-  geom_jitter(position=position_jitter(0))+
+  geom_jitter(position=position_jitter(0),size=0.7,alpha=0.5)+
   ggtitle("Biomasse sèche des plantes de génotype 329 en fonction du marqueur RHT du voisin")+
   theme_cowplot()
 ###89
@@ -679,28 +777,28 @@ data_89<-data %>%
 ggplot(aes(x=voisin,y=Biomasse_seche,fill=voisin)
        ,data=data_89)+
   geom_boxplot(outlier.shape = NA)+ 
-  geom_jitter(position=position_jitter(0))+
+  geom_jitter(position=position_jitter(0),size=0.7,alpha=0.5)+
   ggtitle("Biomasse sèche des plantes de génotype 89 en fonction du génotype du voisin")+
   theme_cowplot()
 
 ggplot(aes(x=Monoculture_Couple,y=Biomasse_seche,fill=Monoculture_Couple)
        ,data=data_89)+
   geom_boxplot(outlier.shape = NA)+ 
-  geom_jitter(position=position_jitter(0))+
+  geom_jitter(position=position_jitter(0),size=0.7,alpha=0.5)+
   ggtitle("Biomasse sèche des plantes de génotype 89 en fonction des Condition de culture")+
   theme_cowplot()
 
 ggplot(aes(x=Condition_hydrique,y=Biomasse_seche,fill=Condition_hydrique)
        ,data=data_89)+
   geom_boxplot(outlier.shape = NA)+ 
-  geom_jitter(position=position_jitter(0))+
+  geom_jitter(position=position_jitter(0),size=0.7,alpha=0.5)+
   ggtitle("Biomasse sèche des plantes de génotype 89 en fonction des Conditions hydriques")+
   theme_cowplot()
 
 ggplot(aes(x=RHT_voisin,y=Biomasse_seche,fill=RHT_voisin)
        ,data=data_89)+
   geom_boxplot(outlier.shape = NA)+ 
-  geom_jitter(position=position_jitter(0))+
+  geom_jitter(position=position_jitter(0),size=0.7,alpha=0.5)+
   ggtitle("Biomasse sèche des plantes de génotype 89 en fonction du marqueur RHT du voisin")+
   theme_cowplot()
 
@@ -711,28 +809,28 @@ data_482<-data %>%
 ggplot(aes(x=voisin,y=Biomasse_seche,fill=voisin)
        ,data=data_482)+
   geom_boxplot(outlier.shape = NA)+ 
-  geom_jitter(position=position_jitter(0))+
+  geom_jitter(position=position_jitter(0),size=0.7,alpha=0.5)+
   ggtitle("Biomasse sèche des plantes de génotype 482 en fonction du génotype du voisin")+
   theme_cowplot()
 
 ggplot(aes(x=Monoculture_Couple,y=Biomasse_seche,fill=Monoculture_Couple)
        ,data=data_482)+
   geom_boxplot(outlier.shape = NA)+ 
-  geom_jitter(position=position_jitter(0))+
+  geom_jitter(position=position_jitter(0),size=0.7,alpha=0.5)+
   ggtitle("Biomasse sèche des plantes de génotype 482 en fonction des Condition de culture")+
   theme_cowplot()
 
 ggplot(aes(x=Condition_hydrique,y=Biomasse_seche,fill=Condition_hydrique)
        ,data=data_482)+
   geom_boxplot(outlier.shape = NA)+ 
-  geom_jitter(position=position_jitter(0))+
+  geom_jitter(position=position_jitter(0),size=0.7,alpha=0.5)+
   ggtitle("Biomasse sèche des plantes de génotype 482 en fonction des Conditions hydriques")+
   theme_cowplot()
 
 ggplot(aes(x=RHT_voisin,y=Biomasse_seche,fill=RHT_voisin)
        ,data=data_482)+
   geom_boxplot(outlier.shape = NA)+ 
-  geom_jitter(position=position_jitter(0))+
+  geom_jitter(position=position_jitter(0),size=0.7,alpha=0.5)+
   ggtitle("Biomasse sèche des plantes de génotype 482 en fonction du marqueur RHT du voisin")+
   theme_cowplot()
 ```
