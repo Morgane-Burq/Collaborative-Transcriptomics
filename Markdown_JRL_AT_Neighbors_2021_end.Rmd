@@ -380,6 +380,19 @@ ggplot(aes(x=RHT_voisin,y=Biomasse_seche,fill=RHT_voisin)
     axis.text.x = element_text(angle=90,vjust = 0.5)
   )
 
+data4<-rbind(data_89,data_118,data_265,data_348,data_482)
+ggplot(aes(x=RHT_voisin,y=Biomasse_seche,fill=RHT_voisin)
+       ,data=data4)+
+  geom_boxplot(outlier.shape = NA)+
+  geom_jitter(position=position_jitter(0),size=0.7,alpha=0.5)+
+  facet_grid(cols=vars(plante_genotype))+
+  labs(x="Neighbors genotype",y="Dry Biomass")+
+  theme_bw()+
+  theme(
+    legend.position="none",
+    axis.text.x = element_text(angle=90,vjust = 0.5)
+  )
+
 
 ggplot(aes(x=Monoculture_Couple,y=Biomasse_seche,fill=Condition_hydrique)
        ,data=data_395)+
