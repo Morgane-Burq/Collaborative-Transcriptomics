@@ -1,0 +1,195 @@
+---
+title: "Test Mixed Linear Model"
+output: html_document
+date: '2022-05-23'
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r library}
+library(tidyverse)
+library(car)
+library(ggplot2)
+library(cowplot)
+library(deeplr)
+library(rmarkdown)
+library(lme4)
+library(ggfortify)
+library(lmerTest)
+```
+
+```{r}
+set.seed(66)
+setwd("C:\\Users\\salas\\Documents\\GitHub\\Collaborative-Transcriptomics")
+data_final<-as_data_frame(read.csv("Mesures_neighbors_final_2.tsv",header=TRUE,sep="\t"))
+
+data_final<-data_final[-c(16)] 
+data_final<-data_final[-c(6)] 
+
+#Ajout colonne voisin
+
+data_final_pair = data_final[c(1:270)*2,]
+data_final_impair = data_final[c((1:270)*2 -1),]
+data_final_pair$voisin = data_final_impair$plante_genotype
+data_final_pair$poids_graine_voisin=data_final_impair$poids_graine
+data_final_impair$voisin = data_final_pair$plante_genotype
+data_final_impair$poids_graine_voisin=data_final_pair$poids_graine
+data_final = as.data.frame(rbind(data_final_pair,data_final_impair))
+rm(data_final_impair)
+rm(data_final_pair)
+
+#Modifications Ligne et Colonne pour coller au design
+
+data_final[data_final$Bloc %in% c(2,4,6),]$Ligne = data_final[data_final$Bloc %in% c(2,4,6),]$Ligne + 11
+data_final[data_final$Bloc %in% c(5,6),]$Colonne = data_final[data_final$Bloc %in% c(5,6),]$Colonne + 18
+data_final[data_final$Bloc %in% c(3,4),]$Colonne = data_final[data_final$Bloc %in% c(3,4),]$Colonne + 9
+table(data_final$Ligne,data_final$Bloc)
+
+#Ajout de la colonne RHT_rht
+
+for (elt in (1:nrow(data_final))){
+  if (data_final$plante_genotype[elt]%in%c("114","235","329","376","395","482","89")){
+    data_final$RHT_rht[elt]="rht"
+  }
+  else{
+    data_final$RHT_rht[elt]="RHT"
+  }
+}
+
+#AJout de la colonne RHT_voisin
+
+for (elt in (1:nrow(data_final))){
+  if (data_final$voisin[elt]%in%c("114","235","329","376","395","482","89")){
+    data_final$RHT_voisin[elt]="rht"
+  }
+  else{
+    data_final$RHT_voisin[elt]="RHT"
+  }
+}
+
+#Ajout de la colonne Table 
+for (elt in (1:nrow(data_final))){
+  if (data_final$Colonne[elt]%in%c("1","2","3","4","5")){
+    data_final$Table[elt]="1"
+  }
+  else if (data_final$Colonne[elt]%in%c("10","11","12","13","14")){
+    data_final$Table[elt]="2"
+  }
+  else{
+    data_final$Table[elt]="3"
+  }
+}
+```
+
+```{r}
+#Nettoyage des données et sélection des colonnes.
+data<-data_final[,-c(2,3,7,8,13,14)]
+liste2<-which(is.na(data_final$Longueur_feuille_2))
+liste3<-which(data_final$Couple%in%data_final$Couple[liste2])
+data<-data[-liste3,]
+liste4<-which(is.na(data$Biomasse_seche))
+liste5<-which(data$Couple%in%data$Couple[liste4])
+data<-data[-liste5,]
+liste6<-which(data$Biomasse_seche<24)
+liste7<-which(data$Couple%in%data$Couple[liste6])
+data<-data[-liste7,]
+
+liste8<-which(data$vitesse_longueur_f1<20)
+data2<-data[-liste8,]
+```
+
+```{r}
+#Passage en facteur des variables chr
+data<-data %>% 
+  mutate(Bloc=as.factor(Bloc),
+         plante_genotype=as.factor(plante_genotype),
+         voisin=as.factor(voisin),
+         Condition_hydrique=as.factor(Condition_hydrique),
+         Table = as.factor(Table),
+         Monoculture_Couple=as.factor(Monoculture_Couple),
+         RHT_rht=as.factor(RHT_rht),
+         RHT_voisin=as.factor(RHT_voisin))
+
+```
+
+```{r}
+
+#Tests Linear model Longueur feuille 2 
+
+mod = lm(Longueur_feuille_2 ~ Bloc + Condition_hydrique + Monoculture_Couple+  poids_graine + +poids_graine_voisin+plante_genotype+voisin
+         ,data = data)
+summary(mod)
+BLUE<-coef(mod)
+BLUE_DGE<-BLUE[11:24]
+BLUE_IGE<-BLUE[25:38]
+plot(BLUE_IGE~BLUE_DGE)
+anova(mod)
+plot(mod)
+
+mixed=lmer(Longueur_feuille_2 ~ poids_graine + plante_genotype + (plante_genotype|Table)+(plante_genotype|Bloc),data=data)
+
+mixed2=lmer(Longueur_feuille_2 ~plante_genotype*voisin +(1|Condition_hydrique/Bloc/Table)+(1|poids_graine),data=data)
+summary(mixed2)
+coef(mixed2)
+effet_fixe<-fixef(mixed2)
+effet_random<-ranef(mixed2)
+
+
+anova(mixed2,type=c("III"))
+plot(mixed2)
+
+
+mixed3= lmer(Longueur_feuille_2~ poids_graine + poids_graine_voisin+ Monoculture_Couple + Bloc + Condition_hydrique + voisin + (1+voisin|plante_genotype),data=data)
+summary(mixed3)
+anova(mixed3)
+```
+
+```{r}
+#Plots
+
+Plantes_pots_bloc <- ggplot(data=data,aes(plante_genotype,Longueur_feuille_2,group=Bloc,color=Bloc))+
+  geom_point()+
+  facet_wrap(~Bloc,ncol=2)+
+  stat_smooth(method="lm",se=FALSE)
+Plantes_pots_bloc
+
+Plantes_pots_table <- ggplot(data=data,aes(plante_genotype,Longueur_feuille_2,group=Table,color=Table))+
+  geom_point()+
+  facet_wrap(~Table,ncol=2)+
+  stat_smooth(method="lm")
+Plantes_pots_table
+
+Plantes_pots_cond <- ggplot(data=data,aes(plante_genotype,Longueur_feuille_2,group=Condition_hydrique,color=Condition_hydrique))+
+  geom_point()+
+  facet_wrap(~Condition_hydrique,ncol=2)+
+  stat_smooth(method="lm")
+Plantes_pots_cond
+
+Plantes_pots_monoculture_Couple <- ggplot(data=data,aes(plante_genotype,Longueur_feuille_2,,group=Monoculture_Couple,color=Monoculture_Couple))+
+  geom_point()+
+  facet_wrap(~Monoculture_Couple,ncol=2)+
+  stat_smooth(method="lm")
+Plantes_pots_monoculture_Couple
+
+Plantes_poids_graine <-ggplot(data=data,aes(poids_graine,Longueur_feuille_2))+
+  geom_point()+
+  stat_smooth(method="lm",se=FALSE)
+Plantes_poids_graine
+
+Plantes_geno_monoculture_couple <- ggplot(data=data,aes(voisin,Longueur_feuille_2,group=plante_genotype,color=Monoculture_Couple))+
+  geom_point()+
+  facet_wrap(~plante_genotype)+
+  stat_smooth(method="lm")
+Plantes_geno_monoculture_couple
+
+Plot_longueurs_feuille_2<-ggplot(data=data,aes(Longueur_feuille_2))+
+  geom_bar()
+
+
+```
+
+help('isSingular')
+?lmerTest
+

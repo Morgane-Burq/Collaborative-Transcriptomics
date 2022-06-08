@@ -1,0 +1,474 @@
+---
+title: "Tableau p value + graphs"
+author: "Nicolas SALAS"
+date: '2022-06-03'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+---
+title: "Script Réunion Pierre Martre"
+author: "Nicolas SALAS"
+date: '2022-05-31'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r cars}
+library(tidyverse)
+library(lme4)
+library(Rcpp)
+library(lmerTest)
+library(car)
+library(ggplot2)
+library(cowplot)
+library(deeplr)
+library(multcompView)
+library(lsmeans)
+library(emmeans)
+library(sommer)
+library(vcd)
+```
+
+#Gestion des données: 
+
+``` {r}
+data_final<-as_data_frame(read.csv("Mesures_neighbors_31052022.tsv",header=TRUE,sep="\t"))
+
+
+data_final<-data_final[-c(16)]
+data_final<-data_final[-c(6)]
+
+
+#Ajout colonne voisin
+
+data_final_pair = data_final[c(1:270)*2,]
+data_final_impair = data_final[c((1:270)*2 -1),]
+data_final_pair$voisin = data_final_impair$plante_genotype
+data_final_pair$poids_graine_voisin=data_final_impair$poids_graine
+data_final_impair$voisin = data_final_pair$plante_genotype
+data_final_impair$poids_graine_voisin=data_final_pair$poids_graine
+data_final = as.data.frame(rbind(data_final_pair,data_final_impair))
+rm(data_final_impair)
+rm(data_final_pair)
+
+
+#Modifications Ligne et Colonne pour coller au design
+
+data_final[data_final$Bloc %in% c(2,4,6),]$Ligne = data_final[data_final$Bloc %in% c(2,4,6),]$Ligne + 11
+data_final[data_final$Bloc %in% c(5,6),]$Colonne = data_final[data_final$Bloc %in% c(5,6),]$Colonne + 18
+data_final[data_final$Bloc %in% c(3,4),]$Colonne = data_final[data_final$Bloc %in% c(3,4),]$Colonne + 9
+table(data_final$Ligne,data_final$Bloc)
+
+#Ajout de la colonne RHT_rht
+
+for (elt in (1:nrow(data_final))){
+  if (data_final$plante_genotype[elt]%in%c("114","235","329","376","395","482","89")){
+    data_final$RHT_rht[elt]="rht"
+  }
+  else{
+    data_final$RHT_rht[elt]="RHT"
+  }
+}
+
+#AJout de la colonne RHT_voisin
+
+for (elt in (1:nrow(data_final))){
+  if (data_final$voisin[elt]%in%c("114","235","329","376","395","482","89")){
+    data_final$RHT_voisin[elt]="rht"
+  }
+  else{
+    data_final$RHT_voisin[elt]="RHT"
+  }
+}
+
+#Ajout de la colonne "Structuration du design"
+
+for (elt in (1:nrow(data_final))){
+  if (data_final$plante_genotype[elt]%in%c("235","114","329","376","395")){
+    data_final$Structuration_design[elt]=1
+  }
+  else if (data_final$plante_genotype[elt]%in%c("412","165","131","74","130")){
+    data_final$Structuration_design[elt]=2
+  }
+  else{
+    data_final$Structuration_design[elt]=3
+  }
+}
+
+#Nettoyage du jeu de données 
+
+data<-data_final[,-c(2,3,16:19)]
+
+
+# elimnation des pots dans lesquels au moins une des plantes a mal poussé
+
+#On elimine les pots pour lesquels on n'a pas de données sur la feuille 1
+liste0<-which(is.na(data$Longueur_feuille_1))
+liste1<-which(data$Couple%in%data$Couple[liste0])
+data<-data[-liste1,]
+
+# pas de données sur la Longueur_feuille_2
+
+liste2<-which(is.na(data$Longueur_feuille_2))
+liste3<-which(data$Couple %in% data$Couple[liste2])
+data<-data[-liste3,]
+
+
+# Elimination des pots pour lesquesls au moins une plante n'a  pas de donnees de biomasse
+liste4<-which(is.na(data$Biomasse_seche))
+liste5<-which(data$Couple%in%data$Couple[liste4])
+data<-data[-liste5,]
+
+# Elimination des pots avec une plante chétive
+liste6<-which(data$Biomasse_seche<24)
+liste7<-which(data$Couple%in%data$Couple[liste6])
+data<-data[-liste7,]
+
+#Elimination des pots avec un poids de graine inconnu
+liste8<-which(is.na(data$poids_graine))
+liste9<-which(data$Couple%in%data$Couple[liste8])
+data<-data[-liste9,]
+
+#Fixation des types de données 
+
+data<-data %>%
+  mutate(Bloc=as.factor(Bloc),
+         plante_genotype=as.factor(plante_genotype),
+         voisin=as.factor(voisin),
+         Condition_hydrique=as.factor(Condition_hydrique),
+         Bloc = as.factor(Bloc),
+         plante_genotype= as.factor(plante_genotype),
+         Condition_hydrique =as.factor(Condition_hydrique),
+         Monoculture_Couple =as.factor(Monoculture_Couple),
+         dvoisin =as.factor(voisin),
+         Ligne=as.factor(Ligne),
+         Colonne=as.factor(Colonne),
+         Structuration_design=as.factor(Structuration_design),
+         Bloc_M = as.factor(paste0(Bloc,Condition_hydrique)))
+
+
+#Outliers et Visualisation 
+
+#Outliers Longueur_feuille_1
+
+Quant_sup_lf2<-quantile(data$Longueur_feuille_1,0.99)
+Quant_inf_lf2<-quantile(data$Longueur_feuille_1,0.01)
+outlier<-which(data$Longueur_feuille_1<Quant_inf_lf2)
+
+hist_lf2<-ggplot(data,aes(Longueur_feuille_1))+
+  geom_histogram(aes(y=..density..),color="Blue",fill="white",binwidth =1.5)+
+  geom_density(fill="Red",alpha=0.2)+
+  geom_vline(aes(xintercept=Quant_inf_lf2),color="red")+
+  geom_vline(aes(xintercept=Quant_sup_lf2),color="red")
+###Prise en compte que des outliers < au quantile 1%
+
+#Outliers Largeur_feuille_2 (Pas vraiment utilisable pour analyse)
+
+Quant_sup_laf2<-quantile(data$Largeur_feuille_2,0.99)
+Quant_inf_laf2<-quantile(data$Largeur_feuille_2,0.01)
+outlier_laf2_idx<-which(data$Largeur_feuille_2<Quant_inf_laf1|data$Largeur_feuille_2>Quant_sup_laf1)
+
+hist_laf2<-ggplot(data,aes(Largeur_feuille_2))+
+  geom_histogram(aes(y=..density..),color="Blue",fill="white",binwidth =1.5)+
+  geom_density(fill="Red",alpha=0.2)+
+  geom_vline(aes(xintercept=Quant_inf_laf2),color="red")+
+  geom_vline(aes(xintercept=Quant_sup_laf2),color="red")
+shapiro.test(data$Largeur_feuille_2)
+bartlett.test(data$Largeur_feuille_2~data$Structuration_design)
+summary(goodfit(data$Largeur_feuille_2,type="poisson",method="MinChisq"))
+
+
+#Outliers Longueur_feuille_1
+
+Quant_sup_lf1<-quantile(data$Longueur_feuille_1,0.99)
+Quant_inf_lf1<-quantile(data$Longueur_feuille_1,0.01)
+outlier_lf1_idx<-which(data$Longueur_feuille_1<Quant_inf_lf1|data$Longueur_feuille_1>Quant_sup_lf1)
+
+hist_lf1<-ggplot(data,aes(Longueur_feuille_1))+
+  geom_histogram(aes(y=..density..),color="Blue",fill="white",binwidth =1.5)+
+  geom_density(fill="Red",alpha=0.2)+
+  geom_vline(aes(xintercept=Quant_inf_lf1),color="red")+
+  geom_vline(aes(xintercept=Quant_sup_lf2),color="red")
+
+#Outliers Largeur_feuille_1 (Pas vraiment utilisable pour analyse)
+
+Quant_sup_laf1<-quantile(data$Largeur_feuille_1,0.99)
+Quant_inf_laf1<-quantile(data$Largeur_feuille_1,0.01)
+outlier_laf1_idx<-which(data$Largeur_feuille_1<Quant_inf_laf1|data$Largeur_feuille_1>Quant_sup_laf1)
+
+hist_laf1<-ggplot(data,aes(Largeur_feuille_1))+
+  geom_histogram(aes(y=..density..),color="Blue",fill="white",binwidth =1.5)+
+  geom_density(fill="Red",alpha=0.2)+
+  geom_vline(aes(xintercept=Quant_inf_laf1),color="red")+
+  geom_vline(aes(xintercept=Quant_sup_laf1),color="red")
+shapiro.test(data$Largeur_feuille_1)
+poisson.test(data$Largeur_feuille_1)
+
+#Outliers Biomasse sèche
+
+Quant_sup_b<-quantile(data$Biomasse_seche,0.99)
+Quant_inf_b<-quantile(data$Biomasse_seche,0.01)
+outlier_b_idx<-which(data$Biomasse_seche<Quant_inf_b|data$Biomasse_seche>Quant_sup_b)
+
+hist_b<-ggplot(data,aes(Biomasse_seche))+
+  geom_histogram(aes(y=..density..),color="Blue",fill="white",binwidth =1.5)+
+  geom_density(fill="Red",alpha=0.2)+
+  geom_vline(aes(xintercept=Quant_inf_b),color="red")+
+  geom_vline(aes(xintercept=Quant_sup_b),color="red")
+
+outlier<-intersect(outlier,intersect(outlier_b_idx,outlier_lf1_idx))
+```
+
+```{r}
+
+mod0<-lm(Longueur_feuille_2 ~
+           Structuration_design 
+         + Bloc_M
+         + poids_graine,
+           data=data[-outlier,])
+
+mod1 <- lm(Longueur_feuille_2 ~
+           Structuration_design 
+         + Bloc_M
+         + poids_graine
+         + plante_genotype,
+           data=data[-outlier,])
+
+mod2 <- lm(Longueur_feuille_2 ~
+           Structuration_design 
+         + Bloc_M
+         + poids_graine
+         + plante_genotype
+         + voisin,
+           data=data[-outlier,])
+
+mod3 <- lm(Longueur_feuille_2 ~
+           Structuration_design 
+         + Bloc_M
+         + poids_graine
+         + plante_genotype
+         * voisin,
+           data=data[-outlier,])
+
+aov1 <- anova(mod0,mod1)
+aov2 <- anova(mod1,mod2)
+aov3 <- anova(mod2,mod3)
+
+
+#Récupération des BLUES
+marg_dge<-emmeans(mod3,~plante_genotype)
+marg_ige<-emmeans(mod3,~voisin)
+
+a<-as.vector(as.character(summary(marg_dge)$plante_genotype))
+b<-as.vector(as.character(summary(marg_dge)$emmean ))
+
+mean_dge<-as.data.frame(cbind(a, as.numeric(b)))
+names(mean_dge)<-c("EPO", "DGE")
+mean_dge$DGE <- as.numeric(mean_dge$DGE)
+
+a<-as.vector(as.character(summary(marg_ige)$voisin))
+b<-as.vector(as.character(summary(marg_ige)$emmean ))
+mean_ige<-as.data.frame(cbind(a, as.numeric(b)))
+names(mean_ige)<-c("EPO", "IGE")
+
+BLUE<-merge(mean_dge, mean_ige, by.x=1, by.y=1 )
+BLUE$DGE<-as.numeric(BLUE$DGE)
+BLUE$IGE<-as.numeric(BLUE$IGE)
+
+#Plot BLUES DGE vs IGE avec les outliers
+
+coef = coefficients(lm(DGE~IGE,data = BLUE))
+
+Plot_Blues_DGE_IGE_lf2<- ggplot(data=BLUE,aes(DGE,IGE))+
+  geom_point(size=3)+
+  geom_abline(intercept=coef[1],slope=coef[2],color="Red",size=1)+
+  ggtitle("Plot de comparaison des BLUES IGE vs DGE pour la longueur de la feuille 2")+
+  theme_cowplot()
+Plot_Blues_DGE_IGE_lf2
+cor<-cor.test(BLUE$DGE, BLUE$IGE)
+
+#Création du tableau avec les p values et cor
+
+longueur_feuille_2_tableau <- na.omit(as_data_frame(c(aov1$`Pr(>F)`,aov2$`Pr(>F)`,aov3$`Pr(>F)`,cor$estimate,cor$p.value)))
+names(longueur_feuille_2_tableau)<-c("Longueur feuille 2")
+rownames(longueur_feuille_2_tableau)<-c("p - value mod0 vs mod1","p - value mod1 vs mod2","p - value mod2 vs mod3","facteur de correlation entre les BLUES IGE vs DGE","p - value test de correlation : Pearson's product-moment correlation")
+
+```
+
+```{r}
+
+mod0<-lm(Longueur_feuille_1 ~
+           Structuration_design 
+         + Bloc_M
+         + poids_graine,
+           data=data[-outlier,])
+
+mod1 <- lm(Longueur_feuille_1 ~
+           Structuration_design 
+         + Bloc_M
+         + poids_graine
+         + plante_genotype,
+           data=data[-outlier,])
+
+mod2 <- lm(Longueur_feuille_1 ~
+           Structuration_design 
+         + Bloc_M
+         + poids_graine
+         + plante_genotype
+         + voisin,
+           data=data[-outlier,])
+
+mod3 <- lm(Longueur_feuille_1 ~
+           Structuration_design 
+         + Bloc_M
+         + poids_graine
+         + plante_genotype
+         * voisin,
+           data=data[-outlier,])
+
+aov1 <- anova(mod0,mod1)
+aov2 <- anova(mod1,mod2)
+aov3 <- anova(mod2,mod3)
+
+
+#Récupération des BLUES
+marg_dge<-emmeans(mod3,~plante_genotype)
+marg_ige<-emmeans(mod3,~voisin)
+
+a<-as.vector(as.character(summary(marg_dge)$plante_genotype))
+b<-as.vector(as.character(summary(marg_dge)$emmean ))
+
+mean_dge<-as.data.frame(cbind(a, as.numeric(b)))
+names(mean_dge)<-c("EPO", "DGE")
+mean_dge$DGE <- as.numeric(mean_dge$DGE)
+
+a<-as.vector(as.character(summary(marg_ige)$voisin))
+b<-as.vector(as.character(summary(marg_ige)$emmean ))
+mean_ige<-as.data.frame(cbind(a, as.numeric(b)))
+names(mean_ige)<-c("EPO", "IGE")
+
+BLUE<-merge(mean_dge, mean_ige, by.x=1, by.y=1 )
+BLUE$DGE<-as.numeric(BLUE$DGE)
+BLUE$IGE<-as.numeric(BLUE$IGE)
+
+#Plot BLUES DGE vs IGE avec les outliers
+
+coef = coefficients(lm(DGE~IGE,data = BLUE))
+
+Plot_Blues_DGE_IGE_lf1<- ggplot(data=BLUE,aes(DGE,IGE))+
+  geom_point(size=3)+
+  geom_abline(intercept=coef[1],slope=coef[2],color="Red",size=1)+
+  ggtitle("Plot de comparaison des BLUES IGE vs DGE pour la longueur de la feuille 1")+
+  theme_cowplot()
+Plot_Blues_DGE_IGE_lf1
+cor<-cor.test(BLUE$DGE, BLUE$IGE)
+
+#Création du tableau avec les p values et cor
+
+Longueur_feuille_1_tableau <- na.omit(as_data_frame(c(aov1$`Pr(>F)`,aov2$`Pr(>F)`,aov3$`Pr(>F)`,cor$estimate,cor$p.value)))
+names(Longueur_feuille_1_tableau)<-c("Longueur feuille 1")
+rownames(Longueur_feuille_1_tableau)<-c("p - value mod0 vs mod1","p - value mod1 vs mod2","p - value mod2 vs mod3","facteur de correlation entre les BLUES IGE vs DGE","p - value test de correlation : Pearson's product-moment correlation")
+
+```
+
+```{r}
+
+mod0<-lm(Biomasse_seche ~
+           Structuration_design 
+         + Bloc_M
+         + poids_graine,
+           data=data[-outlier,])
+
+mod1 <- lm(Biomasse_seche ~
+           Structuration_design 
+         + Bloc_M
+         + poids_graine
+         + plante_genotype,
+           data=data[-outlier,])
+
+mod2 <- lm(Biomasse_seche ~
+           Structuration_design 
+         + Bloc_M
+         + poids_graine
+         + plante_genotype
+         + voisin,
+           data=data[-outlier,])
+
+mod3 <- lm(Biomasse_seche ~
+           Structuration_design 
+         + Bloc_M
+         + poids_graine
+         + plante_genotype
+         * voisin,
+           data=data[-outlier,])
+
+aov1 <- anova(mod0,mod1)
+aov2 <- anova(mod1,mod2)
+aov3 <- anova(mod2,mod3)
+
+
+#Récupération des BLUES
+marg_dge<-emmeans(mod3,~plante_genotype)
+marg_ige<-emmeans(mod3,~voisin)
+
+a<-as.vector(as.character(summary(marg_dge)$plante_genotype))
+b<-as.vector(as.character(summary(marg_dge)$emmean ))
+
+mean_dge<-as.data.frame(cbind(a, as.numeric(b)))
+names(mean_dge)<-c("EPO", "DGE")
+mean_dge$DGE <- as.numeric(mean_dge$DGE)
+
+a<-as.vector(as.character(summary(marg_ige)$voisin))
+b<-as.vector(as.character(summary(marg_ige)$emmean ))
+mean_ige<-as.data.frame(cbind(a, as.numeric(b)))
+names(mean_ige)<-c("EPO", "IGE")
+
+BLUE<-merge(mean_dge, mean_ige, by.x=1, by.y=1 )
+BLUE$DGE<-as.numeric(BLUE$DGE)
+BLUE$IGE<-as.numeric(BLUE$IGE)
+
+#Plot BLUES DGE vs IGE avec les outliers
+
+coef = coefficients(lm(DGE~IGE,data = BLUE))
+
+Plot_Blues_DGE_IGE_b<- ggplot(data=BLUE,aes(DGE,IGE))+
+  geom_point(size=3)+
+  geom_abline(intercept=coef[1],slope=coef[2],color="Red",size=1)+
+  ggtitle("Plot de comparaison des BLUES IGE vs DGE pour la Biomasse seche")+
+  theme_cowplot()
+Plot_Blues_DGE_IGE_b
+cor<-cor.test(BLUE$DGE, BLUE$IGE)
+
+#Création du tableau avec les p values et cor
+
+Biomasse_seche_tableau <- na.omit(as_data_frame(c(aov1$`Pr(>F)`,aov2$`Pr(>F)`,aov3$`Pr(>F)`,cor$estimate,cor$p.value)))
+names(Biomasse_seche_tableau)<-c("Biomasse sèche")
+rownames(Biomasse_seche_tableau)<-c("p - value mod0 vs mod1","p - value mod1 vs mod2","p - value mod2 vs mod3","facteur de correlation entre les BLUES IGE vs DGE","p - value test de correlation : Pearson's product-moment correlation")
+
+```
+
+```{r}
+
+Tableau <- cbind(Biomasse_seche_tableau,longueur_feuille_2_tableau,Longueur_feuille_1_tableau)
+rownames(Tableau) <- c("p - value mod0 vs mod1","p - value mod1 vs mod2","p - value mod2 vs mod3","facteur de correlation entre les BLUES IGE vs DGE","p - value test de correlation : Pearson's product-moment correlation")
+
+write.csv2(Tableau,file = "Tableau p-values.csv")
+
+Plot_Blues_DGE_IGE_lf2
+Plot_Blues_DGE_IGE_lf1
+Plot_Blues_DGE_IGE_b
+
+```
+
+
+
+
+
