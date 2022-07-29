@@ -152,7 +152,15 @@ data<-data %>%
          Ligne=as.factor(Ligne),
          Colonne=as.factor(Colonne),
          Structuration_design=as.factor(Structuration_design),
-         Bloc_M = as.factor(paste0(Bloc,Condition_hydrique)))
+         Bloc_M = as.factor(paste0(Bloc,Condition_hydrique)),
+         Surface_feuille_2 = Longueur_feuille_2 * 0.73 * Largeur_feuille_2,
+         Surface_feuille_1 = Longueur_feuille_1 * 0.73 * Largeur_feuille_1,
+         log_lf2 = log(Longueur_feuille_2),
+         sqrt_lf2 = sqrt(Longueur_feuille_2),
+         log_sf2 = log(Surface_feuille_2),
+         log_sf1 = log(Surface_feuille_1),
+         sqrt_sf2 = sqrt(Surface_feuille_2),
+         sqrt_sf1 = sqrt(Surface_feuille_1))
 
 
 #Outliers et Visualisation 
@@ -229,7 +237,7 @@ outlier<-intersect(outlier,intersect(outlier_b_idx,outlier_lf1_idx))
 
 ```{r}
 
-mod0<-lm(Longueur_feuille_2 ~
+mod0<- lm(Longueur_feuille_2 ~
            Structuration_design 
          + Bloc_M
          + poids_graine,
@@ -254,9 +262,10 @@ mod3 <- lm(Longueur_feuille_2 ~
            Structuration_design 
          + Bloc_M
          + poids_graine
-         + plante_genotype
-         * voisin,
+         + voisin
+         * plante_genotype,
            data=data[-outlier,])
+anova(mod3)
 
 aov1 <- anova(mod0,mod1)
 aov2 <- anova(mod1,mod2)
@@ -457,6 +466,161 @@ rownames(Biomasse_seche_tableau)<-c("p - value mod0 vs mod1","p - value mod1 vs 
 
 ```{r}
 
+mod0<-lm(Biomasse_seche ~
+           Structuration_design 
+         + Bloc_M
+         + poids_graine,
+           data=data[-outlier,])
+
+mod1 <- lm(Biomasse_seche ~
+           Structuration_design 
+         + Bloc_M
+         + poids_graine
+         + plante_genotype,
+           data=data[-outlier,])
+
+mod2 <- lm(Biomasse_seche ~
+           Structuration_design 
+         + Bloc_M
+         + poids_graine
+         + plante_genotype
+         + voisin,
+           data=data[-outlier,])
+
+mod3 <- lm(Biomasse_seche ~
+           Structuration_design 
+         + Bloc_M
+         + poids_graine
+         + plante_genotype
+         * voisin,
+           data=data[-outlier,])
+
+aov1 <- anova(mod0,mod1)
+aov2 <- anova(mod1,mod2)
+aov3 <- anova(mod2,mod3)
+
+
+#Récupération des BLUES
+marg_dge<-emmeans(mod3,~plante_genotype)
+marg_ige<-emmeans(mod3,~voisin)
+
+a<-as.vector(as.character(summary(marg_dge)$plante_genotype))
+b<-as.vector(as.character(summary(marg_dge)$emmean ))
+
+mean_dge<-as.data.frame(cbind(a, as.numeric(b)))
+names(mean_dge)<-c("EPO", "DGE")
+mean_dge$DGE <- as.numeric(mean_dge$DGE)
+
+a<-as.vector(as.character(summary(marg_ige)$voisin))
+b<-as.vector(as.character(summary(marg_ige)$emmean ))
+mean_ige<-as.data.frame(cbind(a, as.numeric(b)))
+names(mean_ige)<-c("EPO", "IGE")
+
+BLUE<-merge(mean_dge, mean_ige, by.x=1, by.y=1 )
+BLUE$DGE<-as.numeric(BLUE$DGE)
+BLUE$IGE<-as.numeric(BLUE$IGE)
+
+#Plot BLUES DGE vs IGE avec les outliers
+
+coef = coefficients(lm(DGE~IGE,data = BLUE))
+
+Plot_Blues_DGE_IGE_b<- ggplot(data=BLUE,aes(DGE,IGE))+
+  geom_point(size=3)+
+  geom_abline(intercept=coef[1],slope=coef[2],color="Red",size=1)+
+  ggtitle("Plot de comparaison des BLUES IGE vs DGE pour la Biomasse seche")+
+  theme_cowplot()
+Plot_Blues_DGE_IGE_b
+cor<-cor.test(BLUE$DGE, BLUE$IGE)
+
+#Création du tableau avec les p values et cor
+
+Biomasse_seche_tableau <- na.omit(as_data_frame(c(aov1$`Pr(>F)`,aov2$`Pr(>F)`,aov3$`Pr(>F)`,cor$estimate,cor$p.value)))
+names(Biomasse_seche_tableau)<-c("Biomasse sèche")
+rownames(Biomasse_seche_tableau)<-c("p - value mod0 vs mod1","p - value mod1 vs mod2","p - value mod2 vs mod3","facteur de correlation entre les BLUES IGE vs DGE","p - value test de correlation : Pearson's product-moment correlation")
+
+
+```
+
+```{r}
+
+mod0<-lm(Surface_feuille_2 ~
+           Structuration_design 
+         + Bloc_M
+         + poids_graine,
+           data=data[-outlier,])
+
+mod1 <- lm(Surface_feuille_2 ~
+           Structuration_design 
+         + Bloc_M
+         + poids_graine
+         + plante_genotype,
+           data=data[-outlier,])
+
+mod2 <- lm(Surface_feuille_2 ~
+           Structuration_design 
+         + Bloc_M
+         + poids_graine
+         + plante_genotype
+         + voisin,
+           data=data[-outlier,])
+
+mod3 <- lm(Surface_feuille_2 ~
+           Structuration_design 
+         + Bloc_M
+         + poids_graine
+         + plante_genotype
+         * voisin,
+           data=data[-outlier,])
+anova(mod3)
+
+aov1 <- anova(mod0,mod1)
+aov2 <- anova(mod1,mod2)
+aov3 <- anova(mod2,mod3)
+
+
+#Récupération des BLUES
+marg_dge<-emmeans(mod3,~plante_genotype)
+marg_ige<-emmeans(mod3,~voisin)
+
+a<-as.vector(as.character(summary(marg_dge)$plante_genotype))
+b<-as.vector(as.character(summary(marg_dge)$emmean ))
+
+mean_dge<-as.data.frame(cbind(a, as.numeric(b)))
+names(mean_dge)<-c("EPO", "DGE")
+mean_dge$DGE <- as.numeric(mean_dge$DGE)
+
+a<-as.vector(as.character(summary(marg_ige)$voisin))
+b<-as.vector(as.character(summary(marg_ige)$emmean ))
+mean_ige<-as.data.frame(cbind(a, as.numeric(b)))
+names(mean_ige)<-c("EPO", "IGE")
+
+BLUE<-merge(mean_dge, mean_ige, by.x=1, by.y=1 )
+BLUE$DGE<-as.numeric(BLUE$DGE)
+BLUE$IGE<-as.numeric(BLUE$IGE)
+
+#Plot BLUES DGE vs IGE avec les outliers
+
+coef = coefficients(lm(DGE~IGE,data = BLUE))
+
+Plot_Blues_DGE_IGE_b<- ggplot(data=BLUE,aes(DGE,IGE))+
+  geom_point(size=3)+
+  geom_abline(intercept=coef[1],slope=coef[2],color="Red",size=1)+
+  ggtitle("Plot de comparaison des BLUES IGE vs DGE pour la Biomasse seche")+
+  theme_cowplot()
+Plot_Blues_DGE_IGE_b
+cor<-cor.test(BLUE$DGE, BLUE$IGE)
+
+#Création du tableau avec les p values et cor
+
+Surface_feuille_2_tableau <- na.omit(as_data_frame(c(aov1$`Pr(>F)`,aov2$`Pr(>F)`,aov3$`Pr(>F)`,cor$estimate,cor$p.value)))
+names(Surface_feuille_2_tableau)<-c("Surface feuille 2")
+rownames(Surface_feuille_2_tableau)<-c("p - value mod0 vs mod1","p - value mod1 vs mod2","p - value mod2 vs mod3","facteur de correlation entre les BLUES IGE vs DGE","p - value test de correlation : Pearson's product-moment correlation")
+
+```
+
+
+```{r}
+
 Tableau <- cbind(Biomasse_seche_tableau,longueur_feuille_2_tableau,Longueur_feuille_1_tableau)
 rownames(Tableau) <- c("p - value mod0 vs mod1","p - value mod1 vs mod2","p - value mod2 vs mod3","facteur de correlation entre les BLUES IGE vs DGE","p - value test de correlation : Pearson's product-moment correlation")
 
@@ -465,6 +629,9 @@ write.csv2(Tableau,file = "Tableau p-values.csv")
 Plot_Blues_DGE_IGE_lf2
 Plot_Blues_DGE_IGE_lf1
 Plot_Blues_DGE_IGE_b
+
+
+
 
 ```
 

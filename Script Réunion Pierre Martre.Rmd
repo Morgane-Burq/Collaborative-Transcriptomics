@@ -1585,8 +1585,8 @@ cor.test(BLUE$DGE, BLUE$IGE)
 
 ##Récupération des DGE et IGE marginaux pour les modèles sans outliers.
 
-marg_dge.1<-emmeans(mod1.1,~plante_genotype)
-marg_ige.1<-emmeans(mod2.1,~voisin)
+marg_dge.1<-emmeans(mod4.1,~plante_genotype)
+marg_ige.1<-emmeans(mod4.1,~voisin)
 
 a.1<-as.vector(as.character(summary(marg_dge.1)$plante_genotype))
 b.1<-as.vector(as.character(summary(marg_dge.1)$emmean ))
@@ -1666,9 +1666,9 @@ mmod3 <- mmer(Largeur_feuille_2 ~ Structuration_design + Bloc_M + poids_graine,
 summary(mmod3)
 anova(mmod3)
 
-mmod3.1 <- mmer(Largeur_feuille_2 ~ Structuration_design + Bloc_M,
-                 random = ~ gvs(plante_genotype,voisin),
-                 rcov = ~ units, iters = 10,
+mmod3.1 <- mmer(Largeur_feuille_2 ~ Structuration_design + Bloc_M+poids_graine,
+                 random = ~ gvsr(plante_genotype,voisin),
+                 rcov = ~ units,
                  data = data[-outlier,])
 summary(mmod3.1)
 anova(mmod3.1)
@@ -1761,7 +1761,7 @@ cor.test(BLUP$DGE,BLUP$IGE)
 
 #Plot BLUP IGE vs DGE et correlation sans outlier
 
-BLUP.1<-merge(ranef(lmod1.1)$plante_genotype, ranef(lmod2.1)$voisin, by.x=0, by.y=0)
+BLUP.1<-merge(ranef(lmod3.1)$plante_genotype, ranef(lmod3.1)$voisin, by.x=0, by.y=0)
 names(BLUP.1)<-c("EPO","DGE","IGE")
 
 plot(BLUP.1$DGE,BLUP.1$IGE)
@@ -1774,7 +1774,7 @@ cor.test(BLUP.1$DGE,BLUP.1$IGE)
 #Etude de la biomasse sèche 
 #Modèles fixes (les modèles 0.1,1.1,2.1 et 3.1 ont les outliers retirés)
 
-mod0<- lm(Surface_feuille_1~
+mod0<- lm(Surface_feuille_2~
            Structuration_design+
            Bloc_M+
            poids_graine,
@@ -1782,7 +1782,7 @@ mod0<- lm(Surface_feuille_1~
 summary(mod0)
 anova(mod0)
 
-mod0.1<-lm(Surface_feuille_1~
+mod0.1<-lm(Surface_feuille_2~
            Bloc_M+
            Structuration_design+
            poids_graine,
@@ -1790,7 +1790,7 @@ mod0.1<-lm(Surface_feuille_1~
 summary(mod0.1)
 anova(mod0.1)
 
-mod1<-lm(Surface_feuille_1~
+mod1<-lm(Surface_feuille_2~
            Structuration_design+
            Bloc_M+
            poids_graine+
@@ -1799,7 +1799,7 @@ mod1<-lm(Surface_feuille_1~
 summary(mod1)
 anova(mod1)
 
-mod1.1<-lm(Surface_feuille_1~
+mod1.1<-lm(Surface_feuille_2~
            Bloc_M+
            Structuration_design+
            poids_graine+
@@ -1809,7 +1809,7 @@ mod1.1<-lm(Surface_feuille_1~
 summary(mod1.1)
 anova(mod1.1)
 
-mod2 <- lm(Surface_feuille_1~
+mod2 <- lm(Surface_feuille_2~
            Structuration_design+
            Bloc_M+
            poids_graine+
@@ -1818,7 +1818,7 @@ mod2 <- lm(Surface_feuille_1~
 summary(mod2)
 anova(mod2)
 
-mod2.1<-lm(Surface_feuille_1~
+mod2.1<-lm(Surface_feuille_2~
            Structuration_design+
            Bloc_M+
            poids_graine+
@@ -1827,7 +1827,7 @@ mod2.1<-lm(Surface_feuille_1~
 summary(mod2.1)
 anova(mod2.1)
 
-mod3 <- lm(Surface_feuille_1~
+mod3 <- lm(Surface_feuille_2~
            Structuration_design+
            Bloc_M+
            poids_graine+
@@ -1837,7 +1837,7 @@ mod3 <- lm(Surface_feuille_1~
 summary(mod3)
 anova(mod3)
 
-mod3.1<-lm(Surface_feuille_1~
+mod3.1<-lm(Surface_feuille_2~
            Structuration_design+
            Bloc_M+
            poids_graine+
@@ -1847,7 +1847,7 @@ mod3.1<-lm(Surface_feuille_1~
 summary(mod3.1)
 anova(mod3.1)
 
-mod4 <- lm(Surface_feuille_1~
+mod4 <- lm(Surface_feuille_2~
            Structuration_design+
            Bloc_M+
            poids_graine+
@@ -1858,7 +1858,7 @@ summary(mod4)
 anova(mod4)
 shapiro.test(mod4$residuals)
 
-mod4.1<-lm(Surface_feuille_1~
+mod4.1<-lm(Surface_feuille_2~
            Structuration_design+
            Bloc_M+
            poids_graine+
@@ -1927,7 +1927,7 @@ cor.test(BLUE.1$DGE, BLUE.1$IGE)
 
 #Modèles mixtes sommer (les modèles 0.1,1.1,2.1 et 3.1 ont les outliers retirés)
 
-mmod0 <- mmer(Surface_feuille_1 ~ 
+mmod0 <- mmer(Surface_feuille_2 ~ 
                 Structuration_design 
               + Bloc_M 
               + poids_graine,
@@ -1936,7 +1936,7 @@ mmod0 <- mmer(Surface_feuille_1 ~
 summary(mmod0)
 anova(mmod0)
 
-mmod0.1 <- mmer(Surface_feuille_1 ~ 
+mmod0.1 <- mmer(Surface_feuille_2 ~ 
                 Structuration_design 
               + Bloc_M 
               + poids_graine,
@@ -1945,42 +1945,42 @@ mmod0.1 <- mmer(Surface_feuille_1 ~
 summary(mmod0.1)
 anova(mmod0.1)
 
-mmod1 <- mmer(Surface_feuille_1 ~ Structuration_design + Bloc_M,
+mmod1 <- mmer(Surface_feuille_2 ~ Structuration_design + Bloc_M,
                  random = ~ plante_genotype,
                  rcov = ~ units, iters = 10,
                  data = data)
 summary(mmod1)
 anova(mmod1)
 
-mmod1.1 <- mmer(Surface_feuille_1 ~ Structuration_design + Bloc_M,
+mmod1.1 <- mmer(Surface_feuille_2 ~ Structuration_design + Bloc_M,
                  random = ~ plante_genotype,
                  iters = 10,
                  data = data[-outlier,])
 summary(mmod1.1)
 anova(mmod1.1)
 
-mmod2 <- mmer(Surface_feuille_1 ~ Structuration_design + Bloc_M,
+mmod2 <- mmer(Surface_feuille_2 ~ Structuration_design + Bloc_M,
                  random = ~ plante_genotype+voisin,
                  iters = 10,
                  data = data)
 summary(mmod2)
 anova(mmod2)
 
-mmod2.1 <- mmer(Surface_feuille_1 ~ Structuration_design + Bloc_M,
+mmod2.1 <- mmer(Surface_feuille_2 ~ Structuration_design + Bloc_M,
                  random = ~ plante_genotype+voisin,
                  iters = 10,
                  data = data[-outlier,])
 summary(mmod2.1)
 anova(mmod2.1)
 
-mmod3 <- mmer(Surface_feuille_1 ~ Structuration_design + Bloc_M + poids_graine,
+mmod3 <- mmer(Surface_feuille_2 ~ Structuration_design + Bloc_M + poids_graine,
                  random = ~ gvs(plante_genotype,voisin),
                  rcov = ~ units, iters = 10,
                  data = data)
 summary(mmod3)
 anova(mmod3)
 
-mmod3.1 <- mmer(Surface_feuille_1 ~ Structuration_design + Bloc_M,
+mmod3.1 <- mmer(Surface_feuille_2 ~ Structuration_design + Bloc_M,
                  random = ~ gvs(plante_genotype,voisin),
                  rcov = ~ units, iters = 10,
                  data = data[-outlier,])
@@ -2005,7 +2005,7 @@ rDGE_IGE.1<-covDGE.IGE.1 / (vDGE.1 * vIGE.1)**.5
 #Modèles mixtes lme4 (les modèles 0.1,1.1,2.1 et 3.1 ont les outliers retirés)
 
 
-lmod1 <- lmer(Surface_feuille_1 ~
+lmod1 <- lmer(Surface_feuille_2 ~
               Structuration_design
             + Bloc_M
             + poids_graine
@@ -2014,7 +2014,7 @@ lmod1 <- lmer(Surface_feuille_1 ~
 summary(lmod1)
 anova(lmod1)
 
-lmod1.1 <- lmer(Surface_feuille_1 ~
+lmod1.1 <- lmer(Surface_feuille_2 ~
               Structuration_design
             + Bloc_M
             + poids_graine
@@ -2023,7 +2023,7 @@ lmod1.1 <- lmer(Surface_feuille_1 ~
 summary(lmod1.1)
 anova(lmod1.1)
 
-lmod2 <- lmer(Surface_feuille_1 ~
+lmod2 <- lmer(Surface_feuille_2 ~
               Structuration_design
             + Bloc_M
             + poids_graine
@@ -2032,7 +2032,7 @@ lmod2 <- lmer(Surface_feuille_1 ~
 summary(lmod2)
 anova(lmod2)
 
-lmod2.1 <- lmer(Surface_feuille_1 ~
+lmod2.1 <- lmer(Surface_feuille_2 ~
               Structuration_design
             + Bloc_M
             + poids_graine
@@ -2041,7 +2041,7 @@ lmod2.1 <- lmer(Surface_feuille_1 ~
 summary(lmod2.1)
 anova(lmod2.1)
 
-lmod3 <- lmer(Surface_feuille_1 ~
+lmod3 <- lmer(Surface_feuille_2 ~
               Structuration_design
             + Bloc_M
             + poids_graine
@@ -2051,7 +2051,7 @@ lmod3 <- lmer(Surface_feuille_1 ~
 summary(lmod3)
 anova(lmod3)
 
-lmod3.1 <- lmer(Surface_feuille_1 ~
+lmod3.1 <- lmer(Surface_feuille_2 ~
               Structuration_design
             + Bloc_M
             + poids_graine
@@ -3420,6 +3420,11 @@ plot(BLUP.1$DGE,BLUP.1$IGE)
 coef<-coefficients(lm(DGE~IGE,data=BLUP.1))
 abline(coef,col="red")
 cor.test(BLUP.1$DGE,BLUP.1$IGE)
+```
+
+```{r}
+plot(data$Longueur_feuille_2, data$Surface_feuille_2)
+plot(data[,c(9:10,13,23)])
 ```
 
 

@@ -1,0 +1,1318 @@
+---
+title: "Discussion Jacques"
+author: "Nicolas SALAS"
+date: '2022-07-08'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r packages}
+library(tidyverse)
+library(lme4)
+library(Rcpp)
+library(lmerTest)
+library(car)
+library(ggplot2)
+library(cowplot)
+library(deeplr)
+library(multcompView)
+library(lsmeans)
+library(emmeans)
+library(sommer)
+library(vcd)
+library(SpATS)
+```
+
+#Gestion des données: 
+
+``` {r}
+data_final<-as_data_frame(read.csv("Mesures_neighbors_31052022.tsv",header=TRUE,sep="\t"))
+
+
+data_final<-data_final[-c(16)]
+data_final<-data_final[-c(6)]
+
+
+#Ajout colonne voisin
+
+data_final_pair = data_final[c(1:270)*2,]
+data_final_impair = data_final[c((1:270)*2 -1),]
+data_final_pair$voisin = data_final_impair$plante_genotype
+data_final_pair$poids_graine_voisin=data_final_impair$poids_graine
+data_final_impair$voisin = data_final_pair$plante_genotype
+data_final_impair$poids_graine_voisin=data_final_pair$poids_graine
+data_final = as.data.frame(rbind(data_final_pair,data_final_impair))
+rm(data_final_impair)
+rm(data_final_pair)
+
+
+#Modifications Ligne et Colonne pour coller au design
+
+data_final[data_final$Bloc %in% c(2,4,6),]$Ligne = data_final[data_final$Bloc %in% c(2,4,6),]$Ligne + 9
+data_final[data_final$Bloc %in% c(5,6),]$Colonne = data_final[data_final$Bloc %in% c(5,6),]$Colonne + 10
+data_final[data_final$Bloc %in% c(3,4),]$Colonne = data_final[data_final$Bloc %in% c(3,4),]$Colonne + 5
+table(data_final$Ligne,data_final$Bloc)
+
+#Ajout de la colonne RHT_rht
+
+for (elt in (1:nrow(data_final))){
+  if (data_final$plante_genotype[elt]%in%c("114","235","329","376","395","482","89")){
+    data_final$RHT_rht[elt]="rht"
+  }
+  else{
+    data_final$RHT_rht[elt]="RHT"
+  }
+}
+
+#AJout de la colonne RHT_voisin
+
+for (elt in (1:nrow(data_final))){
+  if (data_final$voisin[elt]%in%c("114","235","329","376","395","482","89")){
+    data_final$RHT_voisin[elt]="rht"
+  }
+  else{
+    data_final$RHT_voisin[elt]="RHT"
+  }
+}
+
+#Ajout de la colonne "Structuration du design"
+
+for (elt in (1:nrow(data_final))){
+  if (data_final$plante_genotype[elt]%in%c("235","114","329","376","395")){
+    data_final$Structuration_design[elt]=1
+  }
+  else if (data_final$plante_genotype[elt]%in%c("412","165","131","74","130")){
+    data_final$Structuration_design[elt]=2
+  }
+  else{
+    data_final$Structuration_design[elt]=3
+  }
+}
+
+for (elt in (1:nrow(data_final))){
+  if (data_final$Bloc[elt] %in% c("1","2")){
+    data_final$Table = "1"
+  }
+  else if (data_final$Bloc[elt] %in% c("3","4")){
+    data_final$Table = "2"
+  }
+  else if (data_final$Bloc[elt] %in% c("5","6")){
+    data_final$Table = "3"
+  }
+}
+
+#Nettoyage du jeu de données 
+
+data<-data_final[,-c(2,3,16:19)]
+
+
+# elimnation des pots dans lesquels au moins une des plantes a mal poussé
+
+#On elimine les pots pour lesquels on n'a pas de données sur la feuille 1
+liste0<-which(is.na(data$Longueur_feuille_1))
+liste1<-which(data$Couple%in%data$Couple[liste0])
+data<-data[-liste1,]
+
+# pas de données sur la Longueur_feuille_2
+
+liste2<-which(is.na(data$Longueur_feuille_2))
+liste3<-which(data$Couple %in% data$Couple[liste2])
+data<-data[-liste3,]
+
+
+# Elimination des pots pour lesquesls au moins une plante n'a  pas de donnees de biomasse
+liste4<-which(is.na(data$Biomasse_seche))
+liste5<-which(data$Couple%in%data$Couple[liste4])
+data<-data[-liste5,]
+
+# Elimination des pots avec une plante chétive
+liste6<-which(data$Biomasse_seche<24)
+liste7<-which(data$Couple%in%data$Couple[liste6])
+data<-data[-liste7,]
+
+#Elimination des pots avec un poids de graine inconnu
+liste8<-which(is.na(data$poids_graine))
+liste9<-which(data$Couple%in%data$Couple[liste8])
+data<-data[-liste9,]
+
+#Fixation des types de données 
+
+data<-data %>%
+  mutate(Bloc=as.factor(Bloc),
+         plante_genotype=as.factor(plante_genotype),
+         voisin=as.factor(voisin),
+         Condition_hydrique=as.factor(Condition_hydrique),
+         Bloc = as.factor(Bloc),
+         plante_genotype= as.factor(plante_genotype),
+         Condition_hydrique =as.factor(Condition_hydrique),
+         Monoculture_Couple =as.factor(Monoculture_Couple),
+         voisin =as.factor(voisin),
+         Ligne=as.numeric(Ligne),
+         Colonne=as.numeric(Colonne),
+         C= as.factor(Colonne),
+         L= as.factor(Ligne),
+         Table=as.character(Table),
+         Structuration_design=as.factor(Structuration_design),
+         Bloc_M = as.factor(paste0(Bloc,Condition_hydrique)),
+         Surface_feuille_2 = Longueur_feuille_2 * 0.73 * Largeur_feuille_2,
+         Surface_feuille_1 = Longueur_feuille_1 * 0.73 * Largeur_feuille_1,
+         log_lf2 = log(Longueur_feuille_2),
+         sqrt_lf2 = sqrt(Longueur_feuille_2),
+         log_sf2 = log(Surface_feuille_2),
+         log_sf1 = log(Surface_feuille_1),
+         sqrt_sf2 = sqrt(Surface_feuille_2),
+         sqrt_sf1 = sqrt(Surface_feuille_1))
+
+data_b6<-data[-outlier,] %>% 
+  filter(Bloc=="1")
+data_b2<-data[-outlier,] %>% 
+  filter(Bloc=="2")
+data_b3<-data[-outlier,] %>% 
+  filter(Bloc=="3")
+data_b4<-data[-outlier,] %>% 
+  filter(Bloc=="4")
+data_b5<-data[-outlier,] %>% 
+  filter(Bloc=="5")
+data_b6<-data[-outlier,] %>% 
+  filter(Bloc=="6")
+#Outliers et Visualisation 
+
+#Outliers Longueur_feuille_1
+
+Quant_sup_lf2<-quantile(data$Longueur_feuille_1,0.99)
+Quant_inf_lf2<-quantile(data$Longueur_feuille_1,0.01)
+outlier<-which(data$Longueur_feuille_1<Quant_inf_lf2)
+
+hist_lf2<-ggplot(data,aes(Longueur_feuille_1))+
+  geom_histogram(aes(y=..density..),color="Blue",fill="white",binwidth =1.5)+
+  geom_density(fill="Red",alpha=0.2)+
+  geom_vline(aes(xintercept=Quant_inf_lf2),color="red")+
+  geom_vline(aes(xintercept=Quant_sup_lf2),color="red")
+###Prise en compte que des outliers < au quantile 1%
+
+#Outliers Largeur_feuille_2 (Pas vraiment utilisable pour analyse)
+
+Quant_sup_laf2<-quantile(data$Largeur_feuille_2,0.99)
+Quant_inf_laf2<-quantile(data$Largeur_feuille_2,0.01)
+outlier_laf2_idx<-which(data$Largeur_feuille_2<Quant_inf_laf1|data$Largeur_feuille_2>Quant_sup_laf1)
+
+hist_laf2<-ggplot(data,aes(Largeur_feuille_2))+
+  geom_histogram(aes(y=..density..),color="Blue",fill="white",binwidth =1.5)+
+  geom_density(fill="Red",alpha=0.2)+
+  geom_vline(aes(xintercept=Quant_inf_laf2),color="red")+
+  geom_vline(aes(xintercept=Quant_sup_laf2),color="red")
+shapiro.test(data$Largeur_feuille_2)
+bartlett.test(data$Largeur_feuille_2~data$Structuration_design)
+summary(goodfit(data$Largeur_feuille_2,type="poisson",method="MinChisq"))
+
+
+#Outliers Longueur_feuille_1
+
+Quant_sup_lf1<-quantile(data$Longueur_feuille_1,0.99)
+Quant_inf_lf1<-quantile(data$Longueur_feuille_1,0.01)
+outlier_lf1_idx<-which(data$Longueur_feuille_1<Quant_inf_lf1|data$Longueur_feuille_1>Quant_sup_lf1)
+
+hist_lf1<-ggplot(data,aes(Longueur_feuille_1))+
+  geom_histogram(aes(y=..density..),color="Blue",fill="white",binwidth =1.5)+
+  geom_density(fill="Red",alpha=0.2)+
+  geom_vline(aes(xintercept=Quant_inf_lf1),color="red")+
+  geom_vline(aes(xintercept=Quant_sup_lf2),color="red")
+
+#Outliers Largeur_feuille_1 (Pas vraiment utilisable pour analyse)
+
+Quant_sup_laf1<-quantile(data$Largeur_feuille_1,0.99)
+Quant_inf_laf1<-quantile(data$Largeur_feuille_1,0.01)
+outlier_laf1_idx<-which(data$Largeur_feuille_1<Quant_inf_laf1|data$Largeur_feuille_1>Quant_sup_laf1)
+
+hist_laf1<-ggplot(data,aes(Largeur_feuille_1))+
+  geom_histogram(aes(y=..density..),color="Blue",fill="white",binwidth =1.5)+
+  geom_density(fill="Red",alpha=0.2)+
+  geom_vline(aes(xintercept=Quant_inf_laf1),color="red")+
+  geom_vline(aes(xintercept=Quant_sup_laf1),color="red")
+shapiro.test(data$Largeur_feuille_1)
+poisson.test(data$Largeur_feuille_1)
+
+#Outliers Biomasse sèche
+
+Quant_sup_b<-quantile(data$Biomasse_seche,0.99)
+Quant_inf_b<-quantile(data$Biomasse_seche,0.01)
+outlier_b_idx<-which(data$Biomasse_seche<Quant_inf_b|data$Biomasse_seche>Quant_sup_b)
+
+hist_b<-ggplot(data,aes(Biomasse_seche))+
+  geom_histogram(aes(y=..density..),color="Blue",fill="white",binwidth =1.5)+
+  geom_density(fill="Red",alpha=0.2)+
+  geom_vline(aes(xintercept=Quant_inf_b),color="red")+
+  geom_vline(aes(xintercept=Quant_sup_b),color="red")
+
+outlier<-intersect(outlier,intersect(outlier_b_idx,outlier_lf1_idx))
+```
+
+```{r}
+mod0<- lm(Longueur_feuille_2 ~
+           Structuration_design 
+         + Bloc_M
+         + poids_graine,
+           data=data[-outlier,])
+
+mod1 <- lm(Longueur_feuille_2 ~
+           Structuration_design 
+         + Bloc_M
+         + poids_graine
+         + plante_genotype,
+           data=data[-outlier,])
+
+mod2 <- lm(Longueur_feuille_2 ~
+           Structuration_design 
+         + Bloc_M
+         + poids_graine
+         + plante_genotype
+         + voisin,
+           data=data[-outlier,])
+
+mod3 <- lm(Longueur_feuille_2 ~
+           Structuration_design 
+         + Bloc_M
+         + poids_graine
+         + plante_genotype
+         * voisin,
+           data=data[-outlier,])
+anova(mod3)
+mmod<- mmer(Longueur_feuille_2 ~ 
+              structuration_design
+            + Bloc_M
+            + poids_graine
+            + plante_genotype*
+              voisin)
+
+aov1 <- anova(mod0,mod1)
+aov2 <- anova(mod1,mod2)
+aov3 <- anova(mod2,mod3)
+
+
+#Récupération des BLUES
+marg_dge<-emmeans(mod3,~plante_genotype)
+marg_ige<-emmeans(mod3,~voisin)
+
+a<-as.vector(as.character(summary(marg_dge)$plante_genotype))
+b<-as.vector(as.character(summary(marg_dge)$emmean ))
+
+mean_dge<-as.data.frame(cbind(a, as.numeric(b)))
+names(mean_dge)<-c("EPO", "DGE")
+mean_dge$DGE <- as.numeric(mean_dge$DGE)
+
+a<-as.vector(as.character(summary(marg_ige)$voisin))
+b<-as.vector(as.character(summary(marg_ige)$emmean ))
+mean_ige<-as.data.frame(cbind(a, as.numeric(b)))
+names(mean_ige)<-c("EPO", "IGE")
+
+BLUE<-merge(mean_dge, mean_ige, by.x=1, by.y=1 )
+BLUE$DGE<-as.numeric(BLUE$DGE)
+BLUE$IGE<-as.numeric(BLUE$IGE)
+
+#Plot BLUES DGE vs IGE avec les outliers
+
+coef = coefficients(lm(DGE~IGE,data = BLUE))
+
+Plot_Blues_DGE_IGE_lf2<- ggplot(data=BLUE,aes(DGE,IGE))+
+  geom_point(size=3)+
+  geom_abline(intercept=coef[1],slope=coef[2],color="Red",size=1)+
+  ggtitle("Plot de comparaison des BLUES IGE vs DGE pour la longueur de la feuille 2")+
+  theme_cowplot()
+Plot_Blues_DGE_IGE_lf2
+cor<-cor.test(BLUE$DGE, BLUE$IGE)
+
+
+lmod1 <- lmer(Longueur_feuille_2 ~
+              Structuration_design
+            + Bloc_M
+            + poids_graine
+            + (1|plante_genotype)
+              , data = data[-outlier,])
+summary(lmod1)
+anova(lmod1)
+
+
+lmod1.1 <- lmer(Longueur_feuille_2 ~
+              Structuration_design
+            + Bloc_M
+            + poids_graine
+            + (1|voisin)
+              , data = data[-outlier,])
+summary(lmod1.1)
+anova(lmod1.1)
+
+lmod2 <- lmer(Longueur_feuille_2 ~
+              Structuration_design
+            + Bloc_M
+            + poids_graine
+            + (1|plante_genotype)
+            + (1|voisin)
+              , data = data[-outlier,])
+summary(lmod2)
+anova(lmod2)
+
+lmod2.1 <- lmer(Longueur_feuille_2 ~
+              Structuration_design
+            + Bloc_M
+            + poids_graine
+            + (1|voisin)
+            + (1|plante_genotype)
+              , data = data[-outlier,])
+summary(lmod2.1)
+anova(lmod2.1)
+
+lmod3 <- lmer(Longueur_feuille_2 ~
+              Structuration_design
+            + Bloc_M
+            + poids_graine
+            + (1|plante_genotype)
+            + (1|voisin)
+            + (1|plante_genotype:voisin)
+            , data = data[-outlier,])
+
+summary(lmod3)
+anova(lmod3)
+
+#Plot BLUP IGE vs DGE et correlation 
+
+BLUP<-merge(ranef(lmod3)$plante_genotype, ranef(lmod3)$voisin, by.x=0, by.y=0)
+names(BLUP)<-c("EPO","DGE","IGE")
+
+plot(BLUP$DGE,BLUP$IGE)
+coef<-coefficients(lm(DGE~IGE,data=BLUP))
+abline(coef,col="red")
+cor.test(BLUP$DGE,BLUP$IGE)
+
+#Plot BLUP IGE vs DGE sans interaction
+
+BLUP1<-merge(ranef(lmod2)$plante_genotype, ranef(lmod2)$voisin, by.x=0, by.y=0)
+names(BLUP1)<-c("EPO","DGE","IGE")
+
+plot(BLUP1$DGE,BLUP1$IGE)
+coef<-coefficients(lm(DGE~IGE,data=BLUP1))
+abline(coef,col="red")
+cor.test(BLUP1$DGE,BLUP1$IGE)
+
+#Plot BLUP IGE vs DGE modèles individuels
+
+BLUP2<-merge(ranef(lmod1)$plante_genotype, ranef(lmod1.1)$voisin, by.x=0, by.y=0)
+names(BLUP2)<-c("EPO","DGE","IGE")
+
+plot(BLUP2$DGE,BLUP2$IGE)
+coef<-coefficients(lm(DGE~IGE,data=BLUP2))
+abline(coef,col="red")
+cor.test(BLUP2$DGE,BLUP2$IGE)
+
+```
+
+```{r}
+
+mmod0 <- mmer(Longueur_feuille_2 ~ 
+                Structuration_design 
+              + Bloc_M 
+              + poids_graine,
+                 data = data[-outlier,])
+summary(mmod0)
+anova(mmod0)
+
+mmod1 <- mmer(Longueur_feuille_2 ~ Structuration_design + Bloc_M+poids_graine,
+                 random = ~ plante_genotype,
+                 rcov = ~ units,
+                 data = data[-outlier,])
+summary(mmod1)
+anova(mmod1)
+
+mmod1.1 <- mmer(Longueur_feuille_2 ~ Structuration_design + Bloc_M+poids_graine,
+                 random = ~ voisin,
+                 rcov = ~units,
+                 data = data[-outlier,])
+summary(mmod1.1)
+anova(mmod1.1)
+
+mmod2 <- mmer(Longueur_feuille_2 ~ Structuration_design + Bloc_M+poids_graine,
+                 random = ~ plante_genotype+voisin,
+                 rcov = ~units,
+                 data = data[-outlier,])
+summary(mmod2)
+anova(mmod2)
+
+mmod3<-mmer(Longueur_feuille_2 ~ Structuration_design + Bloc_M + poids_graine,
+                 random = ~ plante_genotype+voisin+plante_genotype:voisin,
+                 rcov = ~ units,
+                 data = data[-outlier,])
+summary(mmod3)
+anova(mmod3)
+
+
+
+mmod4 <- mmer(Longueur_feuille_2 ~ Structuration_design + Bloc_M + poids_graine,
+                 random = ~ gvsr(plante_genotype,voisin) +
+                  vsr(C) +
+                  vsr(L) +
+                  spl2Da(Ligne,Colonne),
+                 rcov = ~ units,
+                 data = data[-outlier,])
+summary(mmod4)
+anova(mmod4)
+
+#Calcul de la correlation pour les modèles à covariance
+
+
+vDGE<-summary(mmod4)$varcomp[[1]][1]
+covDGE.IGE<-summary(mmod4)$varcomp[[1]][2]
+vIGE<-summary(mmod4)$varcomp[[1]][3]
+rDGE_IGE<-covDGE.IGE / (vDGE * vIGE)**.5
+
+
+#Test SpATS
+spats <- SpATS(response = "Longueur_feuille_2" , 
+               genotype = "plante_genotype" ,
+               genotype.as.random = TRUE , 
+               spatial = ~ PSANOVA(Colonne,Ligne,nseg = c(10,10)),
+               fixed = ~ Structuration_design + Bloc_M + poids_graine,
+               random = ~ voisin + C + L, 
+               data = data[-outlier,])
+summary(spats,which= "variances")
+summary(spats,which= "all")
+getHeritability(spats)
+plot(spats)
+plot(variogram(spats))
+BLUP_spats_cols<-as.data.frame(spats$coeff[40:54])
+BLUP_spats_cols$C<-rownames(BLUP_spats_cols)
+names(BLUP_spats_cols)<-c("BLUP","C")
+BLUP_spats_cols$C<-as.factor(BLUP_spats_cols$C)
+plot(BLUP_spats_cols$C,BLUP_spats_cols$BLUP)
+
+mmod5 <- mmer(Longueur_feuille_2 ~ Structuration_design + Bloc_M + poids_graine,
+                 random = ~ vsr(plante_genotype) +
+                  vsr(voisin) + 
+                  vsr(C) +
+                  vsr(L) + 
+                  spl2Da(Ligne,Colonne),
+                 rcov = ~ units,
+                 data = data[-outlier,])
+summary(mmod5)
+anova(mmod5)
+BLUP_sommer_cols<-randef(mmod5)
+BLUP_sommer_cols<-as.data.frame(BLUP_sommer_cols[["u:C"]][["Longueur_feuille_2"]])
+BLUP_sommer_cols$C<-rownames(BLUP_sommer_cols)
+names(BLUP_sommer_cols)<-c("BLUP","C")
+BLUP_sommer_cols$C<-as.factor(BLUP_sommer_cols$C)
+plot(BLUP_sommer_cols$C,BLUP_sommer_cols$BLUP)
+
+spats_b1<-SpATS(response = "Longueur_feuille_2" , 
+               genotype = "plante_genotype" ,
+               genotype.as.random = TRUE , 
+               spatial = ~ SAP(Colonne,Ligne),
+               fixed = ~ Structuration_design + poids_graine,
+               random = ~voisin,
+               data = data_b1)
+summary(spats_b1,which="variance")
+plot(spats_b1)
+
+spats_b2<-SpATS(response = "Longueur_feuille_2" , 
+               genotype = "plante_genotype" ,
+               genotype.as.random = TRUE , 
+               spatial = ~ SAP(Colonne,Ligne),
+               fixed = ~ Structuration_design + poids_graine,
+               random = ~voisin,
+               data = data_b2)
+summary(spats_b2)
+plot(spats_b2)
+
+spats_b3<-SpATS(response = "Longueur_feuille_2" , 
+               genotype = "plante_genotype" ,
+               genotype.as.random = TRUE , 
+               spatial = ~ SAP(Colonne,Ligne),
+               fixed = ~ Structuration_design + poids_graine,
+               random = ~voisin,
+               data = data_b3)
+summary(spats_b3)
+plot(spats_b3)
+
+spats_b4<-SpATS(response = "Longueur_feuille_2" , 
+               genotype = "plante_genotype" ,
+               genotype.as.random = TRUE , 
+               spatial = ~ SAP(Colonne,Ligne),
+               fixed = ~ Structuration_design + poids_graine,
+               random = ~voisin,
+               data = data_b4)
+summary(spats_b4)
+plot(spats_b4)
+
+spats_b5<-SpATS(response = "Longueur_feuille_2" , 
+               genotype = "plante_genotype" ,
+               genotype.as.random = TRUE , 
+               spatial = ~ SAP(Colonne,Ligne),
+               fixed = ~ Structuration_design + poids_graine,
+               random = ~voisin,
+               data = data_b5)
+summary(spats_b5)
+plot(spats_b5)
+
+spats_b6<-SpATS(response = "Longueur_feuille_2" , 
+               genotype = "plante_genotype" ,
+               genotype.as.random = TRUE , 
+               spatial = ~ SAP(Colonne,Ligne),
+               fixed = ~ Structuration_design + poids_graine,
+               random = ~voisin,
+               data = data_b6)
+summary(spats_b6)
+plot(spats_b6)
+
+spats_2 <- SpATS(response = "Biomasse_seche" , 
+               genotype = "plante_genotype" ,
+               genotype.as.random = TRUE , 
+               spatial = ~ SAP(Colonne,Ligne,nseg = c(10,10)),
+               fixed = ~ Structuration_design + Bloc_M + poids_graine,
+               random = ~ C+L+voisin,
+               data = data[-outlier,])
+summary(spats_2)
+plot(spats_2)
+
+spats_3 <- SpATS(response = "Surface_feuille_2" , 
+               genotype = "plante_genotype" ,
+               genotype.as.random = TRUE , 
+               spatial = ~ SAP(Colonne,Ligne,nseg = c(10,10)),
+               fixed = ~ Structuration_design + Bloc_M + poids_graine,
+               random = ~ C+L+voisin,
+               data = data[-outlier,])
+plot(spats_3)
+
+spats_4 <- SpATS(response = "Largeur_feuille_2" , 
+               genotype = "plante_genotype" ,
+               genotype.as.random = TRUE , 
+               spatial = ~ SAP(Colonne,Ligne,nseg = c(10,10)),
+               fixed = ~ Structuration_design + Bloc_M + poids_graine,
+               random = ~ C+L+voisin,
+               data = data[-outlier,])
+plot(spats_4)
+```
+
+
+```{r}
+mod0<- lm(Surface_feuille_2 ~
+           Structuration_design 
+         + Bloc_M
+         + poids_graine,
+           data=data[-outlier,])
+
+mod1 <- lm(Surface_feuille_2 ~
+           Structuration_design 
+         + Bloc_M
+         + poids_graine
+         + plante_genotype,
+           data=data[-outlier,])
+anova(mod1)
+
+mod1.1<- lm(Surface_feuille_2 ~
+              Structuration_design
+            + Bloc_M
+            + poids_graine
+            + voisin,
+            data=data[-outlier,])
+anova(mod1.1)
+
+mod2 <- lm(Surface_feuille_2 ~
+           Structuration_design 
+         + Bloc_M
+         + poids_graine
+         + plante_genotype
+         + voisin,
+           data=data[-outlier,])
+
+mod2.1 <- mod2 <- lm(Surface_feuille_2 ~
+           Structuration_design 
+         + Bloc_M
+         + poids_graine
+         + voisin
+         + plante_genotype,
+           data=data[-outlier,])
+
+mod3 <- lm(Surface_feuille_2 ~
+           Structuration_design 
+         + Bloc_M
+         + poids_graine
+         + plante_genotype
+         * voisin,
+           data=data[-outlier,])
+anova(mod3)
+
+mod3.1 <- lm(Surface_feuille_2 ~
+           Structuration_design 
+         + Bloc_M
+         + poids_graine
+         + voisin
+         * plante_genotype,
+           data=data[-outlier,])
+anova(mod3.1)
+
+aov1 <- anova(mod0,mod1)
+aov1.1<-anova(mod0,mod1.1)
+aov2 <- anova(mod1,mod2)
+aov2.1<-anova(mod1.1,mod2.1)
+aov3 <- anova(mod2,mod3)
+aov3.1<- anova(mod2.1,mod3.1)
+
+
+#Récupération des BLUES mod 3 
+marg_dge<-emmeans(mod3,~plante_genotype)
+marg_ige<-emmeans(mod3,~voisin)
+
+a<-as.vector(as.character(summary(marg_dge)$plante_genotype))
+b<-as.vector(as.character(summary(marg_dge)$emmean ))
+
+mean_dge<-as.data.frame(cbind(a, as.numeric(b)))
+names(mean_dge)<-c("EPO", "DGE")
+mean_dge$DGE <- as.numeric(mean_dge$DGE)
+
+a<-as.vector(as.character(summary(marg_ige)$voisin))
+b<-as.vector(as.character(summary(marg_ige)$emmean ))
+mean_ige<-as.data.frame(cbind(a, as.numeric(b)))
+names(mean_ige)<-c("EPO", "IGE")
+
+BLUE<-merge(mean_dge, mean_ige, by.x=1, by.y=1 )
+BLUE$DGE<-as.numeric(BLUE$DGE)
+BLUE$IGE<-as.numeric(BLUE$IGE)
+
+#Plot BLUES DGE vs IGE avec les outliers
+
+coef1 = coefficients(lm(DGE~IGE,data = BLUE))
+
+Plot_Blues_DGE_IGE_sf2<- ggplot(data=BLUE,aes(IGE,DGE))+
+  geom_point(size=3)+
+  geom_abline(intercept=coef1[1],slope=coef1[2],color="Red",size=1)+
+  ggtitle("Plot de comparaison des BLUES IGE vs DGE pour la surface de la feuille 2")+
+  theme_cowplot()
+Plot_Blues_DGE_IGE_sf2
+cor1<-cor.test(BLUE$DGE, BLUE$IGE)
+cor1
+
+#Récupération des BLUES 1 et 1.1
+marg_dge<-emmeans(mod1,~plante_genotype)
+marg_ige<-emmeans(mod1.1,~voisin)
+
+a<-as.vector(as.character(summary(marg_dge)$plante_genotype))
+b<-as.vector(as.character(summary(marg_dge)$emmean ))
+
+mean_dge<-as.data.frame(cbind(a, as.numeric(b)))
+names(mean_dge)<-c("EPO", "DGE")
+mean_dge$DGE <- as.numeric(mean_dge$DGE)
+
+a<-as.vector(as.character(summary(marg_ige)$voisin))
+b<-as.vector(as.character(summary(marg_ige)$emmean ))
+mean_ige<-as.data.frame(cbind(a, as.numeric(b)))
+names(mean_ige)<-c("EPO", "IGE")
+
+BLUE<-merge(mean_dge, mean_ige, by.x=1, by.y=1 )
+BLUE$DGE<-as.numeric(BLUE$DGE)
+BLUE$IGE<-as.numeric(BLUE$IGE)
+
+#Plot BLUES DGE vs IGE avec les outliers
+
+coef1.1 = coefficients(lm(DGE~IGE,data = BLUE))
+
+Plot_Blues_DGE_IGE_sf2.1<- ggplot(data=BLUE,aes(DGE,IGE))+
+  geom_point(size=3)+
+  geom_abline(intercept=coef1.1[1],slope=coef1.1[2],color="Red",size=1)+
+  ggtitle("Plot de comparaison des BLUES IGE vs DGE pour la surface de la feuille 2")+
+  theme_cowplot()
+Plot_Blues_DGE_IGE_sf2.1
+cor1.1<-cor.test(BLUE$DGE, BLUE$IGE)
+cor1.1
+```
+
+```{r}
+
+
+lmod1 <- lmer(Surface_feuille_2 ~
+              Structuration_design
+            + Bloc_M
+            + poids_graine
+            + (1|plante_genotype)
+              , data = data[-outlier,])
+summary(lmod1)
+anova(lmod1)
+
+
+lmod1.1 <- lmer(Surface_feuille_2 ~
+              Structuration_design
+            + Bloc_M
+            + poids_graine
+            + (1|voisin)
+              , data = data[-outlier,])
+summary(lmod1.1)
+anova(lmod1.1)
+
+lmod2 <- lmer(Surface_feuille_2 ~
+              Structuration_design
+            + Bloc_M
+            + poids_graine
+            + (1|plante_genotype)
+            + (1|voisin)
+              , data = data[-outlier,])
+summary(lmod2)
+anova(lmod2)
+
+lmod2.1 <- lmer(Surface_feuille_2 ~
+              Structuration_design
+            + Bloc_M
+            + poids_graine
+            + (1|voisin)
+            + (1|plante_genotype)
+              , data = data[-outlier,])
+summary(lmod2.1)
+anova(lmod2.1)
+
+lmod3 <- lmer(Surface_feuille_2 ~
+              Structuration_design
+            + Bloc_M
+            + poids_graine
+            + (1|plante_genotype)
+            + (1|voisin)
+            + (1|plante_genotype:voisin)
+            , data = data[-outlier,])
+
+summary(lmod3)
+anova(lmod3)
+
+#Plot BLUP IGE vs DGE et correlation 
+
+BLUP<-merge(ranef(lmod3)$plante_genotype, ranef(lmod3)$voisin, by.x=0, by.y=0)
+names(BLUP)<-c("EPO","DGE","IGE")
+
+plot(BLUP$DGE,BLUP$IGE)
+coef<-coefficients(lm(DGE~IGE,data=BLUP))
+abline(coef,col="red")
+cor.test(BLUP$DGE,BLUP$IGE)
+
+#Plot BLUP IGE vs DGE sans interaction
+
+BLUP1<-merge(ranef(lmod2)$plante_genotype, ranef(lmod2)$voisin, by.x=0, by.y=0)
+names(BLUP1)<-c("EPO","DGE","IGE")
+
+plot(BLUP1$IGE,BLUP1$DGE)
+coef<-coefficients(lm(DGE~IGE,data=BLUP1))
+abline(coef,col="red")
+cor.test(BLUP1$DGE,BLUP1$IGE)
+
+#Plot BLUP IGE vs DGE modèles individuels
+
+BLUP2<-merge(ranef(lmod1)$plante_genotype, ranef(lmod1.1)$voisin, by.x=0, by.y=0)
+names(BLUP2)<-c("EPO","DGE","IGE")
+
+plot(BLUP2$IGE,BLUP2$DGE)
+coef<-coefficients(lm(DGE~IGE,data=BLUP2))
+abline(coef,col="red")
+cor.test(BLUP2$DGE,BLUP2$IGE)
+
+```
+
+```{r}
+
+mmod0 <- mmer(Surface_feuille_2 ~ 
+                Structuration_design 
+              + Bloc_M 
+              + poids_graine,
+                 data = data[-outlier,])
+summary(mmod0)
+anova(mmod0)
+
+mmod1 <- mmer(Surface_feuille_2 ~ Structuration_design + Bloc_M+poids_graine,
+                 random = ~ plante_genotype,
+                 rcov = ~ units,
+                 data = data[-outlier,])
+summary(mmod1)
+anova(mmod1)
+
+mmod1.1 <- mmer(Surface_feuille_2 ~ Structuration_design + Bloc_M+poids_graine,
+                 random = ~ voisin,
+                 rcov = ~units,
+                 data = data[-outlier,])
+summary(mmod1.1)
+anova(mmod1.1)
+
+mmod2 <- mmer(Surface_feuille_2 ~ Structuration_design + Bloc_M+poids_graine,
+                 random = ~ plante_genotype+voisin,
+                 rcov = ~units,
+                 data = data[-outlier,])
+summary(mmod2)
+anova(mmod2)
+
+mmod3<-mmer(Surface_feuille_2 ~ Structuration_design + Bloc_M + poids_graine,
+                 random = ~ plante_genotype+voisin+plante_genotype:voisin,
+                 rcov = ~ units,
+                 data = data[-outlier,])
+summary(mmod3)
+anova(mmod3)
+
+
+mmod4 <- mmer(Surface_feuille_2 ~ Structuration_design + Bloc_M + poids_graine,
+                 random = ~ gvsr(plante_genotype,voisin),
+                 rcov = ~ units,
+                 data = data[-outlier,])
+summary(mmod4)
+anova(mmod4)
+
+#Calcul de la correlation pour les modèles à covariance
+
+
+vDGE<-summary(mmod4)$varcomp[[1]][1]
+covDGE.IGE<-summary(mmod4)$varcomp[[1]][2]
+vIGE<-summary(mmod4)$varcomp[[1]][3]
+rDGE_IGE<-covDGE.IGE / (vDGE * vIGE)**.5
+
+BLUP_sommer<-randef(mmod4)
+BLUP_DGE<-as.data.frame(BLUP_sommer[["plante_genotype:plante_genotype"]])
+BLUP_IGE<-as.data.frame(BLUP_sommer[["voisin:voisin"]])
+BLUP_sommer<-merge(BLUP_DGE,BLUP_IGE,by.x = 0, by.y = 0)
+names(BLUP_sommer)<-c("EPO","DGE","IGE")
+
+plot(BLUP_sommer$IGE,BLUP_sommer$DGE)
+coef<-coefficients(lm(DGE~IGE,data=BLUP_sommer))
+abline(coef,col="red")
+cor.test(BLUP_sommer$DGE,BLUP_sommer$IGE)
+
+
+BLUP_sommer_DGE<-randef(mmod1)
+BLUP_sommer_IGE<-randef(mmod1.1)
+BLUP_DGE<-as.data.frame(BLUP_sommer_DGE[["plante_genotype"]])
+BLUP_IGE<-as.data.frame(BLUP_sommer_IGE[["voisin"]])
+rownames(BLUP_IGE)<-rownames(BLUP_DGE)
+BLUP_sommer<-merge(BLUP_DGE,BLUP_IGE,by.x = 0, by.y = 0)
+names(BLUP_sommer)<-c("EPO","DGE","IGE")
+
+plot(BLUP_sommer$IGE,BLUP_sommer$DGE)
+coef<-coefficients(lm(DGE~IGE,data=BLUP_sommer))
+abline(coef,col="red")
+cor.test(BLUP_sommer$DGE,BLUP_sommer$IGE)
+
+```
+
+
+```{r}
+mod0<- lm(Largeur_feuille_2 ~
+           Structuration_design 
+         + Bloc_M
+         + poids_graine,
+           data=data[-outlier,])
+
+mod1 <- lm(Largeur_feuille_2 ~
+           Structuration_design 
+         + Bloc_M
+         + poids_graine
+         + plante_genotype,
+           data=data[-outlier,])
+
+mod2 <- lm(Largeur_feuille_2 ~
+           Structuration_design 
+         + Bloc_M
+         + poids_graine
+         + plante_genotype
+         + voisin,
+           data=data[-outlier,])
+
+mod3 <- lm(Largeur_feuille_2 ~
+           Structuration_design 
+         + Bloc_M
+         + poids_graine
+         + plante_genotype
+         * voisin,
+           data=data[-outlier,])
+anova(mod3)
+
+aov1 <- anova(mod0,mod1)
+aov2 <- anova(mod1,mod2)
+aov3 <- anova(mod2,mod3)
+
+
+#Récupération des BLUES
+marg_dge<-emmeans(mod3,~plante_genotype)
+marg_ige<-emmeans(mod3,~voisin)
+
+a<-as.vector(as.character(summary(marg_dge)$plante_genotype))
+b<-as.vector(as.character(summary(marg_dge)$emmean ))
+
+mean_dge<-as.data.frame(cbind(a, as.numeric(b)))
+names(mean_dge)<-c("EPO", "DGE")
+mean_dge$DGE <- as.numeric(mean_dge$DGE)
+
+a<-as.vector(as.character(summary(marg_ige)$voisin))
+b<-as.vector(as.character(summary(marg_ige)$emmean ))
+mean_ige<-as.data.frame(cbind(a, as.numeric(b)))
+names(mean_ige)<-c("EPO", "IGE")
+
+BLUE<-merge(mean_dge, mean_ige, by.x=1, by.y=1 )
+BLUE$DGE<-as.numeric(BLUE$DGE)
+BLUE$IGE<-as.numeric(BLUE$IGE)
+
+#Plot BLUES DGE vs IGE avec les outliers
+
+coef = coefficients(lm(DGE~IGE,data = BLUE))
+
+Plot_Blues_DGE_IGE_lf2<- ggplot(data=BLUE,aes(IGE,DGE))+
+  geom_point(size=3)+
+  geom_abline(intercept=coef[1],slope=coef[2],color="Red",size=1)+
+  ggtitle("Plot de comparaison des BLUES IGE vs DGE pour la longueur de la feuille 2")+
+  theme_cowplot()
+Plot_Blues_DGE_IGE_lf2
+cor<-cor.test(BLUE$DGE, BLUE$IGE)
+cor
+
+lmod1 <- lmer(Largeur_feuille_2 ~
+              Structuration_design
+            + Bloc_M
+            + poids_graine
+            + (1|plante_genotype)
+              , data = data[-outlier,])
+summary(lmod1)
+anova(lmod1)
+
+
+lmod1.1 <- lmer(Largeur_feuille_2 ~
+              Structuration_design
+            + Bloc_M
+            + poids_graine
+            + (1|voisin)
+              , data = data[-outlier,])
+summary(lmod1.1)
+anova(lmod1.1)
+
+lmod2 <- lmer(Largeur_feuille_2 ~
+              Structuration_design
+            + Bloc_M
+            + poids_graine
+            + (1|plante_genotype)
+            + (1|voisin)
+              , data = data[-outlier,])
+summary(lmod2)
+anova(lmod2)
+
+lmod2.1 <- lmer(Largeur_feuille_2 ~
+              Structuration_design
+            + Bloc_M
+            + poids_graine
+            + (1|voisin)
+            + (1|plante_genotype)
+              , data = data[-outlier,])
+summary(lmod2.1)
+anova(lmod2.1)
+
+lmod3 <- lmer(Largeur_feuille_2 ~
+              Structuration_design
+            + Bloc_M
+            + poids_graine
+            + (1|plante_genotype)
+            + (1|voisin)
+            + (1|plante_genotype:voisin)
+            , data = data[-outlier,])
+
+summary(lmod3)
+anova(lmod3)
+
+#Plot BLUP IGE vs DGE et correlation 
+
+BLUP<-merge(ranef(lmod3)$plante_genotype, ranef(lmod3)$voisin, by.x=0, by.y=0)
+names(BLUP)<-c("EPO","DGE","IGE")
+
+plot(BLUP$IGE,BLUP$DGE)
+coef<-coefficients(lm(DGE~IGE,data=BLUP))
+abline(coef,col="red")
+cor.test(BLUP$DGE,BLUP$IGE)
+
+#Plot BLUP IGE vs DGE sans interaction
+
+BLUP1<-merge(ranef(lmod2)$plante_genotype, ranef(lmod2)$voisin, by.x=0, by.y=0)
+names(BLUP1)<-c("EPO","DGE","IGE")
+
+plot(BLUP1$IGE,BLUP1$DGE)
+coef<-coefficients(lm(DGE~IGE,data=BLUP1))
+abline(coef,col="red")
+cor.test(BLUP1$DGE,BLUP1$IGE)
+
+#Plot BLUP IGE vs DGE modèles individuels
+
+BLUP2<-merge(ranef(lmod1)$plante_genotype, ranef(lmod1.1)$voisin, by.x=0, by.y=0)
+names(BLUP2)<-c("EPO","DGE","IGE")
+
+plot(BLUP2$IGE,BLUP2$DGE)
+coef<-coefficients(lm(DGE~IGE,data=BLUP2))
+abline(coef,col="red")
+cor.test(BLUP2$DGE,BLUP2$IGE)
+
+```
+
+```{r}
+
+mmod0 <- mmer(Largeur_feuille_2 ~ 
+                Structuration_design 
+              + Bloc_M 
+              + poids_graine,
+                 data = data[-outlier,])
+summary(mmod0)
+anova(mmod0)
+
+mmod1 <- mmer(Largeur_feuille_2 ~ Structuration_design + Bloc_M+poids_graine,
+                 random = ~ plante_genotype,
+                 rcov = ~ units,
+                 data = data[-outlier,])
+summary(mmod1)
+anova(mmod1)
+
+mmod1.1 <- mmer(Largeur_feuille_2 ~ Structuration_design + Bloc_M+poids_graine,
+                 random = ~ voisin,
+                 rcov = ~units,
+                 data = data[-outlier,])
+summary(mmod1.1)
+anova(mmod1.1)
+
+mmod2 <- mmer(Largeur_feuille_2 ~ Structuration_design + Bloc_M+poids_graine,
+                 random = ~ plante_genotype+voisin,
+                 rcov = ~units,
+                 data = data[-outlier,])
+summary(mmod2)
+anova(mmod2)
+
+mmod3<-mmer(Largeur_feuille_2 ~ Structuration_design + Bloc_M + poids_graine,
+                 random = ~ plante_genotype+voisin+plante_genotype:voisin,
+                 rcov = ~ units,
+                 data = data[-outlier,])
+summary(mmod3)
+anova(mmod3)
+
+
+mmod4 <- mmer(Largeur_feuille_2 ~ Structuration_design + Bloc_M + poids_graine,
+                 random = ~ gvsr(plante_genotype,voisin),
+                 rcov = ~ units,
+                 data = data[-outlier,])
+summary(mmod4)
+anova(mmod4)
+
+#Calcul de la correlation pour les modèles à covariance
+
+
+vDGE<-summary(mmod4)$varcomp[[1]][1]
+covDGE.IGE<-summary(mmod4)$varcomp[[1]][2]
+vIGE<-summary(mmod4)$varcomp[[1]][3]
+rDGE_IGE<-covDGE.IGE / (vDGE * vIGE)**.5
+
+```
+
+```{r Résultats à présenter}
+
+mod3 <- lm(Longueur_feuille_2 ~
+           Structuration_design 
+         + Bloc_M
+         + poids_graine
+         + Monoculture_Couple
+         + plante_genotype
+         * voisin,
+           data=data[-outlier,])
+summary(mod3)
+anova(mod3)
+
+mmod_f<- mmer(Longueur_feuille_2 ~ 
+              Structuration_design
+            + Bloc_M
+            + Monoculture_Couple
+            + poids_graine
+            + plante_genotype
+            + voisin
+            + plante_genotype:voisin,
+            random = ~ 
+            spl2Da(Colonne,Ligne,nseg = c(5,1))
+            + vsr(C)
+            + vsr(L),
+            rcov = ~units,
+            data=data[-outlier,])
+
+summary(mmod_f)
+
+BLUE_IGE<-emmeans(mmod_f,~voisin)
+BLUE_DGE <- emmeans(mmod_f, ~plante_genotype)
+BLUE <- data.frame(EPO = as.data.frame(summary(BLUE_IGE)$voisin),
+                   IGE = as.data.frame(summary(BLUE_IGE)$emmean),
+                   DGE = as.data.frame(summary(BLUE_DGE)$emmean))
+colnames(BLUE) <- c("EPO","IGE","DGE")
+
+plot_BLUE <- ggplot(BLUE,aes(IGE,DGE))+
+  geom_point()
+plot_BLUE
+cor.test(BLUE$DGE,BLUE$IGE)
+
+mmod_rd<- mmer(Longueur_feuille_2 ~ 
+              Structuration_design
+            + Bloc_M
+            + poids_graine
+            + Monoculture_Couple,
+            random = ~ 
+              plante_genotype
+            + voisin
+            + plante_genotype:voisin
+            + C
+            + L
+            + spl2Da(Colonne,Ligne,nseg = c(5,1),type="SAP"),
+            rcov = ~units,
+            data=data[-outlier,])
+summary(mmod_rd)
+anova(mmod_rd)
+
+BLUP <- data.frame(EPO = rownames(as.data.frame(randef(mmod_rd)$plante_genotype$Longueur_feuille_2)),
+                   DGE = as.data.frame(randef(mmod_rd)$plante_genotype$Longueur_feuille_2)[,1],
+                   IGE = as.data.frame(randef(mmod_rd)$voisin$Longueur_feuille_2)[,1],
+                   DIGE = as.data.frame(randef(mmod_rd)$`plante_genotype:voisin`$Longueur_feuille_2)[,1])
+plot_BLUP <- ggplot(BLUP,aes(IGE,DGE))+
+  geom_point()
+plot_BLUP
+cor.test(BLUP$DGE,BLUP$IGE)
+
+plot_BLUP_DGE_DIGE <- ggplot(BLUP,aes(DGE,DIGE))+
+  geom_point()
+cor.test(BLUP$DGE,BLUP$DIGE)
+
+plot_BLUP_DGE_DIGE <- ggplot(BLUP,aes(DGE,DIGE))+
+  geom_point()
+cor.test(BLUP$IGE,BLUP$DIGE)
+
+spats_rd <-SpATS(response = "Longueur_feuille_2" , 
+               genotype = "plante_genotype",
+               genotype.as.random = TRUE,
+               spatial = ~ SAP(Colonne,Ligne,nseg = c(5,1)),
+               fixed = ~ Structuration_design + poids_graine + Bloc_M + Monoculture_Couple,
+               random = ~  C + L + voisin + plante_genotype:voisin, 
+               data = data[-outlier,])
+plot(spats_rd)
+getHeritability(spats_rd)
+
+ff_spats<-as.matrix(obtain.spatialtrend(spats_rd,grid=c(456,456))$fit)
+lattice::levelplot(ff_spats)
+
+
+
+
+data2<-data[-outlier,]
+ff<-fitted.mmer(mmod_rd)
+data2$fit<-as.matrix(Reduce("+",ff$Zu[-c(1:2)]))
+lattice::levelplot(fit~Colonne*Ligne,data=data2)
+
+mmod_rd_cov <- mmer(Longueur_feuille_2 ~ 
+              Structuration_design
+            + Bloc_M
+            + poids_graine
+            + Monoculture_Couple,
+            random = ~ 
+              gvsr(plante_genotype,voisin)
+            + vsr(plante_genotype:voisin)
+            + C
+            + L
+            + spl2Da(Colonne,Ligne,nseg = c(5,1),type = "SAP"),
+            rcov = ~units,
+            data=data[-outlier,])
+summary(mmod_rd_cov)
+
+ff_cov<-fitted.mmer(mmod_rd_cov)
+data2$fit_cov<-as.matrix(Reduce("+",ff_cov$Zu[-c(1:2)]))
+lattice::levelplot(data2$fit_cov~ Ligne * Colonne,data=data2)
+
+
+```
+
+```{r}
+mmod_rd_sf<- mmer(Surface_feuille_2 ~ 
+              Structuration_design
+            + Bloc_M
+            + poids_graine
+            + Monoculture_Couple,
+            random = ~ 
+              plante_genotype
+            + voisin
+            + plante_genotype:voisin
+            + C
+            + L
+            + spl2Da(Ligne,Colonne,nseg = c(10,10)),
+            rcov = ~units,
+            data=data[-outlier,])
+summary(mmod_rd_sf)
+
+BLUP <- data.frame(EPO = rownames(as.data.frame(randef(mmod_rd_sf)$plante_genotype$Surface_feuille_2)),
+                   DGE = as.data.frame(randef(mmod_rd_sf)$plante_genotype$Surface_feuille_2)[,1],
+                   IGE = as.data.frame(randef(mmod_rd_sf)$voisin$Surface_feuille_2)[,1])
+plot_BLUP <- ggplot(BLUP,aes(IGE,DGE))+
+  geom_point()
+plot_BLUP
+cor.test(BLUP$DGE,BLUP$IGE)
+
+spats_rd_sf <-SpATS(response = "Surface_feuille_2" , 
+               genotype = "plante_genotype",
+               genotype.as.random = TRUE,
+               spatial = ~ PSANOVA(Colonne,Ligne,nseg = c(5,1)),
+               fixed = ~ Structuration_design + poids_graine + Bloc_M + Monoculture_Couple,
+               random = ~  C + L + voisin + plante_genotype:voisin, 
+               data = data[-outlier,])
+plot(spats_rd_sf)
+getHeritability(spats_rd_sf)
+
+
+
+
+
+
+
+
+
+
+
+
+
+```
+
+```{r}
+
+AIC_BIC <- function (data,X){
+  A <- as.data.frame(matrix(ncol=5))
+  colnames(A)<-c("X","i","j","AIC","BIC")
+  df<-data %>%
+    dplyr::select("Structuration_design","Monoculture_Couple","poids_graine","plante_genotype","voisin","Bloc_M","Ligne","Colonne","L","C",X)
+  colnames(df)<-c("Structuration_design","Monoculture_Couple","poids_graine","plante_genotype","voisin","Bloc_M","Ligne","Colonne","L","C","X")
+  for (i in (1:18)){
+    for(j in (1:15)){
+      print(i)
+      print(j)
+      mod <- mmer(X ~ 
+            Structuration_design
+            + Bloc_M
+            + poids_graine
+            + Monoculture_Couple,
+            random = ~ 
+              plante_genotype
+            + voisin
+            + plante_genotype:voisin
+            + C
+            + L
+            + spl2Da(Ligne,Colonne,nseg = c(i,j)),
+            rcov = ~units,
+            data=df)
+      B<-c(X,i,j,mod$AIC,mod$BIC)
+      A<-rbind(A,B)
+    }
+  }
+  return (A[-1,])
+}
+
+AIC_mmod <- AIC_BIC(data[-outlier,],"Longueur_feuille_2")
+AIC_mmod_f <- AIC_BIC(data[-outlier,],"Longueur_feuille_2")
+AIC_mmod_rd <- AIC_BIC(data[-outlier,],"Longueur_feuille_2")
+
+
+
+
+
+
+
+
+```
+
+
